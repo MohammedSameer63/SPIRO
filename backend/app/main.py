@@ -8,5 +8,12 @@ app = FastAPI(
 @app.get("/")
 def home():
     return {
-        "message": "SPIRO Backend Running Successfully"
+        "message": "SPIRO Backend API"
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "healthy"
     }
