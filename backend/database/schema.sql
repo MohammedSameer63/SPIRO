@@ -54,21 +54,25 @@ CREATE TABLE wards (
 -- ============================================================
 
 CREATE TABLE households (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
     ward_id UUID NOT NULL,
 
-    house_number VARCHAR(50) NOT NULL,
+    house_number VARCHAR(20) NOT NULL,
 
-    street_name VARCHAR(100),
+    street_name VARCHAR(255) NOT NULL,
 
     address TEXT,
 
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    FOREIGN KEY (ward_id)
+    CONSTRAINT fk_households_ward
+        FOREIGN KEY (ward_id)
         REFERENCES wards(id)
-        ON DELETE RESTRICT
+        ON DELETE RESTRICT,
+
+    CONSTRAINT uq_household_location
+        UNIQUE (ward_id, house_number, street_name)
 );
 
 -- ============================================================
@@ -86,7 +90,7 @@ CREATE TABLE users (
 
     phone VARCHAR(15),
 
-    password_hash TEXT NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
 
     role user_role NOT NULL,
 
