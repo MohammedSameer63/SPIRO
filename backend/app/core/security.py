@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone
 from typing import Any
+from uuid import UUID
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -35,30 +36,28 @@ def verify_password(
 
 
 def create_access_token(
-    data: dict[str, Any],
+    user_id: UUID,
     expires_delta: timedelta | None = None,
 ) -> str:
     """
-    Create a signed JWT access token.
+    Generate a JWT access token for the given user.
     """
 
-    to_encode = data.copy()
-
-    expire = (
-        datetime.now(timezone.utc)
-        + (
-            expires_delta
-            if expires_delta
-            else timedelta(
-                minutes=settings.access_token_expire_minutes
-            )
+    expire = datetime.now(timezone.utc) + (
+        expires_delta
+        if expires_delta is not None
+        else timedelta(
+            minutes=settings.access_token_expire_minutes
         )
     )
 
-    to_encode.update({"exp": expire})
+    payload = {
+        "sub": str(user_id),
+        "exp": expire,
+    }
 
     encoded_jwt = jwt.encode(
-        to_encode,
+        payload,
         settings.jwt_secret_key,
         algorithm=settings.jwt_algorithm,
     )
