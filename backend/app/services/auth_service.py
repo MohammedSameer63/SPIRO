@@ -3,21 +3,28 @@ from sqlalchemy.orm import Session
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
     WardNotFoundError,
+    InvalidCredentialsError,
+    AccountNotActiveError,
 )
 from app.core.security import (
     create_access_token,
     hash_password,
+    verify_password,
 )
 from app.models import Household, User
+
 from app.repositories.household_repository import HouseholdRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.ward_repository import WardRepository
 from app.schemas.auth import (
     AuthResponse,
     RegisterRequest,
+    LoginRequest,
 )
+
 from app.schemas.user import UserResponse
 from app.enums.user_role import UserRole
+from app.enums.user_status import UserStatus
 
 
 class AuthService:
@@ -29,8 +36,8 @@ class AuthService:
         self,
         db: Session,
         user_repository: UserRepository,
-        household_repository: HouseholdRepository,
-        ward_repository: WardRepository,
+        household_repository: HouseholdRepository | None = None,
+        ward_repository: WardRepository | None = None,
     ):
         self.db = db
         self.user_repository = user_repository
@@ -126,3 +133,43 @@ class AuthService:
             self.db.rollback()
 
             raise
+
+    def login(
+        self,
+        request: LoginRequest,
+    ) -> AuthResponse:
+        """
+        Authenticate a user and return an access token.
+        """
+
+        user = self.user_repository.find_by_email(
+            request.email
+        )
+
+        if user is None:
+            raise InvalidCredentialsError(
+                "Invalid email or password."
+            )
+
+        if not verify_password(
+            request.password,
+            user.password_hash,
+        ):
+            raise InvalidCredentialsError(
+                "Invalid email or password."
+            )
+
+        if user.status != UserStatus.ACTIVE:
+            raise AccountNotActiveError(
+                "Account is not active."
+            )
+
+        access_token = create_access_token(
+            user_id=user.id,
+        )
+
+        return AuthResponse(
+            access_token=access_token,
+            token_type="bearer",
+            user=UserResponse.model_validate(user),
+        )

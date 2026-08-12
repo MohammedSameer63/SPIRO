@@ -4,6 +4,8 @@ from fastapi.responses import JSONResponse
 from app.core.exceptions import (
     EmailAlreadyRegisteredError,
     WardNotFoundError,
+    InvalidCredentialsError,
+    AccountNotActiveError,
 )
 
 from app.api.routes.auth import router as auth_router
@@ -33,6 +35,30 @@ async def email_already_registered_handler(
 ):
     return JSONResponse(
         status_code=409,
+        content={
+            "detail": str(exc),
+        },
+    )
+
+@app.exception_handler(InvalidCredentialsError)
+async def invalid_credentials_handler(
+    request: Request,
+    exc: InvalidCredentialsError,
+):
+    return JSONResponse(
+        status_code=401,
+        content={
+            "detail": str(exc),
+        },
+    )
+
+@app.exception_handler(AccountNotActiveError)
+async def account_not_active_handler(
+    request: Request,
+    exc: AccountNotActiveError,
+):
+    return JSONResponse(
+        status_code=403,
         content={
             "detail": str(exc),
         },

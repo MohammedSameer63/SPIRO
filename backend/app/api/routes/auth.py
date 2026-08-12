@@ -8,6 +8,7 @@ from app.repositories.ward_repository import WardRepository
 from app.schemas.auth import (
     AuthResponse,
     RegisterRequest,
+	LoginRequest,
 )
 from app.services.auth_service import AuthService
 
@@ -40,3 +41,23 @@ def register(
 	)
 
 	return service.register(request)
+
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    status_code=200,
+)
+def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    user_repository = UserRepository(db)
+
+    service = AuthService(
+        db=db,
+        user_repository=user_repository,
+        household_repository=None,
+        ward_repository=None,
+    )
+
+    return service.login(request)
