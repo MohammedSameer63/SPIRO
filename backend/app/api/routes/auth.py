@@ -10,7 +10,10 @@ from app.schemas.auth import (
     RegisterRequest,
 	LoginRequest,
 )
+from app.schemas.user import UserResponse
+from app.models import User
 from app.services.auth_service import AuthService
+from app.api.dependencies import get_current_user
 
 router = APIRouter(
     prefix="/auth",
@@ -61,3 +64,13 @@ def login(
     )
 
     return service.login(request)
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    status_code=200,
+)
+def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user
