@@ -41,7 +41,7 @@ class Household(Base):
         nullable=True,
     )
 
-    address: Mapped[str | None] = mapped_column(
+    address: Mapped[str] = mapped_column(
         Text,
         nullable=True,
     )

@@ -6,8 +6,12 @@ from app.core.exceptions import (
     WardNotFoundError,
     InvalidCredentialsError,
     AccountNotActiveError,
+    HouseholdNotFoundError,
+    HouseholdAccessDeniedError,
 )
 
+from app.api.routes.household import router as household_router
+from app.api.routes.ward import router as ward_router
 from app.api.routes.auth import router as auth_router
 from app.core.config import settings
 
@@ -64,6 +68,31 @@ async def account_not_active_handler(
         },
     )
 
+@app.exception_handler(HouseholdNotFoundError)
+async def household_not_found_handler(
+    request: Request,
+    exc: HouseholdNotFoundError,
+):
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": str(exc),
+        },
+    )
+
+
+@app.exception_handler(HouseholdAccessDeniedError)
+async def household_access_denied_handler(
+    request: Request,
+    exc: HouseholdAccessDeniedError,
+):
+    return JSONResponse(
+        status_code=403,
+        content={
+            "detail": str(exc),
+        },
+    )
+
 @app.get("/")
 def home():
     return {
@@ -81,4 +110,14 @@ def health():
 app.include_router(
     auth_router,
     prefix=settings.api_prefix,
+)
+
+app.include_router(
+    ward_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    household_router,
+    prefix="/api/v1",
 )

@@ -10,3 +10,9 @@ class InvalidCredentialsError(Exception):
 
 class AccountNotActiveError(Exception):
     """Raised when a non-active user attempts to log in."""
+
+class HouseholdNotFoundError(Exception):
+    """Raised when the requested household does not exist."""
+
+class HouseholdAccessDeniedError(Exception):
+    """Raised when a user is not allowed to access a household."""

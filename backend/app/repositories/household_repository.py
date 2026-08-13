@@ -11,6 +11,29 @@ class HouseholdRepository(BaseRepository):
     Handles all database operations related to the Household model.
     """
 
+    def find_all(
+        self,
+        ward_id: UUID | None = None,
+    ) -> list[Household]:
+        """
+        Retrieve households, optionally filtered by ward.
+        """
+
+        stmt = select(Household)
+
+        if ward_id is not None:
+            stmt = stmt.where(
+                Household.ward_id == ward_id
+            )
+
+        stmt = stmt.order_by(
+            Household.house_number
+        )
+
+        result = self.db.execute(stmt)
+
+        return list(result.scalars().all())
+
     def find_by_id(
         self,
         household_id: UUID,

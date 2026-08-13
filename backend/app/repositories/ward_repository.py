@@ -24,3 +24,14 @@ class WardRepository(BaseRepository):
         result = self.db.execute(stmt)
 
         return result.scalar_one_or_none()
+
+    def find_all(self) -> list[Ward]:
+        """
+        Retrieve all wards.
+        """
+
+        stmt = select(Ward).order_by(Ward.name)
+
+        result = self.db.execute(stmt)
+
+        return list(result.scalars().all())
