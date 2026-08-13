@@ -2,7 +2,9 @@
 
 **Version:** 1.0 (MVP)
 
-**Status:** Draft
+**Status:** Working Contract (MVP)
+
+This document is the working API contract. Implemented behavior takes precedence over older draft examples; implementation changes are reflected here as development progresses.
 
 ---
 
@@ -88,7 +90,7 @@ This document is organized feature-by-feature.
 1. Authentication
 2. Ward & Household
 3. Waste Reporting
-4. Assignments
+4. Workforce Management
 5. Categories
 6. Collection Schedule
 7. Dashboard
@@ -98,7 +100,14 @@ This document is organized feature-by-feature.
 
 # Feature 1 — Authentication
 
-Authentication handles user registration, login, logout, and retrieval of the currently authenticated user's profile.
+Authentication handles citizen registration and login. JWT access tokens are used for protected APIs.
+
+## Implemented Endpoints
+
+- `POST /auth/register` — Implemented and tested
+- `POST /auth/login` — Implemented and tested
+- `POST /auth/logout` — Planned
+- `GET /auth/me` — Planned
 
 ---
 
@@ -106,13 +115,13 @@ Authentication handles user registration, login, logout, and retrieval of the cu
 
 ### Purpose
 
-Register a new citizen account and create a household.
+Register a new citizen account.
+
+If a household matching the supplied location already exists, the new citizen is linked to that household. A new household is created only when no matching household exists.
 
 ### Authentication Required
 
 **No**
-
----
 
 ### Request Body
 
@@ -122,15 +131,14 @@ Register a new citizen account and create a household.
   "email": "sameer@example.com",
   "password": "Password@123",
   "phone": "9876543210",
-
-  "wardId": "UUID",
-  "houseNumber": "12A",
-  "streetName": "MG Road",
+  "ward_id": "UUID",
+  "house_number": "12A",
+  "street_name": "MG Road",
   "address": "12A MG Road, Bengaluru"
 }
 ```
 
----
+> The external field names currently follow the backend Pydantic schemas (`snake_case`).
 
 ### Validation Rules
 
@@ -138,32 +146,31 @@ Register a new citizen account and create a household.
 
 | Field | Rules |
 |-------|-------|
-| name | Required, 2–100 characters |
+| name | Required |
 | email | Required, valid email format, unique |
-| password | Minimum 8 characters |
-| password | At least one uppercase letter |
-| password | At least one lowercase letter |
-| password | At least one number |
-| password | At least one special character |
-| phone | Optional, valid phone number format |
+| password | Required; password hashing is applied before storage |
+| phone | Optional |
 
 #### Household
 
 | Field | Rules |
 |-------|-------|
-| wardId | Required, must exist |
-| houseNumber | Required |
+| ward_id | Required, must exist |
+| house_number | Required |
+| street_name | Optional |
 | address | Required |
-| streetName | Optional |
 
-Additional Business Rules:
+### Business Rules
 
 - Selected ward must exist.
-- Duplicate households (same ward + house number + address) are not allowed.
-- Household is created automatically during registration.
-- Citizen is automatically linked to the newly created household.
-
----
+- Email must be unique.
+- New users are assigned the `CITIZEN` role.
+- New users start with `ACTIVE` status.
+- A matching household is reused when registering another citizen at the same household.
+- Multiple citizens may belong to the same household.
+- The citizen is linked to the household through `household_id`.
+- Passwords are stored only as hashes.
+- Household QR generation is **not part of the implemented registration flow yet**.
 
 ### Success Response
 
@@ -171,39 +178,29 @@ Additional Business Rules:
 
 ```json
 {
-  "success": true,
-  "message": "Registration successful.",
-  "data": {
-    "user": {
-      "id": "UUID",
-      "name": "Sameer",
-      "role": "CITIZEN"
-    },
-    "token": "JWT_TOKEN"
+  "access_token": "JWT_TOKEN",
+  "token_type": "bearer",
+  "user": {
+    "id": "UUID",
+    "name": "Sameer",
+    "email": "sameer@example.com",
+    "phone": "9876543210",
+    "role": "CITIZEN",
+    "status": "ACTIVE"
   }
 }
 ```
-
----
 
 ### Error Responses
 
 | Status | Description |
 |--------|-------------|
-| 400 | Validation failed |
 | 404 | Ward not found |
-| 409 | Email already exists |
-| 409 | Household already exists |
+| 409 | Email already registered |
+| 422 | Request validation failed |
 | 500 | Internal server error |
 
----
-
-### Notes
-
-- Email must be unique.
-- Password is stored as a hashed value.
-- New users are registered with the **CITIZEN** role.
-- Household QR code is generated automatically after successful registration.
+> A duplicate household is **not** an error during registration. An existing matching household is reused.
 
 ---
 
@@ -217,27 +214,21 @@ Authenticate an existing user and return a JWT access token.
 
 **No**
 
----
-
 ### Request Body
 
 ```json
 {
-    "email": "john@example.com",
-    "password": "Password@123"
+  "email": "john@example.com",
+  "password": "Password@123"
 }
 ```
-
----
 
 ### Validation Rules
 
 | Field | Rules |
 |------|-------|
-| email | Required |
+| email | Required, valid email format |
 | password | Required |
-
----
 
 ### Success Response
 
@@ -245,142 +236,64 @@ Authenticate an existing user and return a JWT access token.
 
 ```json
 {
-    "success": true,
-    "message": "Login successful.",
-    "data": {
-        "token": "JWT_TOKEN",
-        "user": {
-            "id": "UUID",
-            "name": "John Doe",
-            "role": "CITIZEN"
-        }
-    }
+  "access_token": "JWT_TOKEN",
+  "token_type": "bearer",
+  "user": {
+    "id": "UUID",
+    "name": "John Doe",
+    "email": "john@example.com",
+    "phone": "9876543210",
+    "role": "CITIZEN",
+    "status": "ACTIVE"
+  }
 }
 ```
-
----
 
 ### Error Responses
 
 | Status | Description |
 |---------|-------------|
-| 401 | Invalid credentials |
-| 403 | Account disabled |
+| 401 | Invalid email or password |
+| 403 | Account is not active |
 
----
+### Account Status Rules
+
+| User Status | Login |
+|-------------|-------|
+| `ACTIVE` | Allowed |
+| `INACTIVE` | Rejected with `403` |
+| `SUSPENDED` | Rejected with `403` |
 
 ### Notes
 
 - JWT expires after **24 hours**.
-- JWT must be included in the `Authorization` header for all protected endpoints.
+- JWT type is `bearer`.
+- Invalid email and wrong password intentionally return the same `401` response.
+- `password_hash` is never included in the response.
 
 ---
 
 ## POST `/auth/logout`
 
-### Purpose
+### Status
 
-Logout the currently authenticated user.
+**Planned**
 
-### Authentication Required
-
-**No**
-
-### Allowed Roles
-
-Citizen • Worker • Admin
-
----
-
-### Request Body
-
-None
-
----
-
-### Success Response
-
-**200 OK**
-
-```json
-{
-    "success": true,
-    "message": "Logged out successfully."
-}
-```
-
----
-
-### Error Responses
-
-| Status | Description |
-|---------|-------------|
-| 401 | Unauthorized |
-
----
-
-### Notes
-
-- In JWT authentication, logout is typically handled on the client by removing the stored token.
-- If refresh tokens or token blacklisting are introduced later, this endpoint can invalidate the active session.
+JWT logout will initially be handled client-side by removing the access token. Server-side invalidation can be introduced later if refresh tokens or token blacklisting are added.
 
 ---
 
 ## GET `/auth/me`
 
-### Purpose
+### Status
 
-Retrieve the profile of the currently authenticated user.
+**Planned**
 
-### Authentication Required
-
-**No**
-
-### Allowed Roles
-
-Citizen • Worker • Admin
+This endpoint will use the JWT access token to identify and return the currently authenticated user.
 
 ---
 
-### Request Body
-
-None
-
----
-
-### Success Response
-
-**200 OK**
-
-```json
-{
-    "success": true,
-    "data": {
-        "id": "UUID",
-        "name": "John Doe",
-        "email": "john@example.com",
-        "role": "CITIZEN"
-    }
-}
-```
-
----
-
-### Error Responses
-
-| Status | Description |
-|---------|-------------|
-| 401 | Unauthorized |
-
----
-
-### Notes
-
-The user is identified using the JWT access token.
-
----
-
-# Authentication Flow
+## Authentication Flow
 
 ```text
 Register
@@ -395,7 +308,7 @@ Receive JWT
 Store Token
       │
       ▼
-Authorization: Bearer <token>
+Authorization: Bearer <JWT_TOKEN>
       │
       ▼
 Access Protected APIs
@@ -403,48 +316,33 @@ Access Protected APIs
 
 ---
 
-# Authentication Rules
+## Authentication Rules
 
-## Password
+### Password
 
-Minimum Requirements
+- Password is hashed before storage.
+- Bcrypt is currently used by the backend.
+- Password hashes are never returned through the API.
 
-- Minimum 8 characters
-- One uppercase letter
-- One lowercase letter
-- One numeric digit
-- One special character
+### Email
 
----
+- Must be unique.
+- Must be a valid email address.
 
-## Email
+### Phone
 
-- Must be unique
-- Must be a valid email address
+- Optional.
 
----
+### JWT
 
-## Phone
+- Expiry: 24 hours.
+- Type: Bearer token.
 
-- Optional
-- Must be a valid mobile number if provided
-
----
-
-## JWT
-
-- Expiry: 24 Hours
-- Type: Bearer Token
-
----
-
-## Authorization Header
+### Authorization Header
 
 ```http
 Authorization: Bearer <JWT_TOKEN>
 ```
-
-
 
 # ============================================
 # Feature 2 - Ward & Household
@@ -1304,7 +1202,7 @@ Return Success
 
 ---
 
-# Overall Business Rules ig
+# Overall Business Rules
 
 - Citizens can create unlimited reports.
 - A report belongs to exactly one citizen.

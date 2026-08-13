@@ -44,7 +44,7 @@ CREATE TYPE audit_event AS ENUM (
 CREATE TABLE wards (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
 
-    name VARCHAR(100) NOT NULL,
+    name VARCHAR(100) NOT NULL UNIQUE,
     zone VARCHAR(100),
     description TEXT
 );
@@ -62,7 +62,7 @@ CREATE TABLE households (
 
     street_name VARCHAR(255) NOT NULL,
 
-    address TEXT,
+    address TEXT NOT NULL,
 
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -92,7 +92,7 @@ CREATE TABLE users (
 
     password_hash VARCHAR(255) NOT NULL,
 
-    role user_role NOT NULL,
+    role user_role NOT NULL DEFAULT 'CITIZEN',
 
     status user_status NOT NULL DEFAULT 'ACTIVE',
 

@@ -1,0 +1,76 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.repositories.household_repository import HouseholdRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.ward_repository import WardRepository
+from app.schemas.auth import (
+    AuthResponse,
+    RegisterRequest,
+	LoginRequest,
+)
+from app.schemas.user import UserResponse
+from app.models import User
+from app.services.auth_service import AuthService
+from app.api.dependencies import get_current_user
+
+router = APIRouter(
+    prefix="/auth",
+    tags=["Authentication"],
+)
+
+@router.post(
+    "/register",
+    response_model=AuthResponse,
+    status_code=201,
+)
+
+def register(
+    request: RegisterRequest,
+    db: Session = Depends(get_db),
+):
+	user_repository = UserRepository(db)
+
+	household_repository = HouseholdRepository(db)
+
+	ward_repository = WardRepository(db)
+
+	service = AuthService(
+	    db=db,
+	    user_repository=user_repository,
+	    household_repository=household_repository,
+	    ward_repository=ward_repository,
+	)
+
+	return service.register(request)
+
+@router.post(
+    "/login",
+    response_model=AuthResponse,
+    status_code=200,
+)
+def login(
+    request: LoginRequest,
+    db: Session = Depends(get_db),
+):
+    user_repository = UserRepository(db)
+
+    service = AuthService(
+        db=db,
+        user_repository=user_repository,
+        household_repository=None,
+        ward_repository=None,
+    )
+
+    return service.login(request)
+
+@router.get(
+    "/me",
+    response_model=UserResponse,
+    status_code=200,
+)
+def get_me(
+    current_user: User = Depends(get_current_user),
+):
+    return current_user

@@ -5,6 +5,7 @@ class Settings(BaseSettings):
     # Application
     project_name: str = "SPIRO REST API"
     api_version: str = "1.0"
+    api_prefix: str = "/api/v1"
     debug: bool = True
 
     # Database
