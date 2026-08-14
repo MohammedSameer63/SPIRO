@@ -158,9 +158,9 @@ CREATE TABLE waste_reports (
 
     image_url TEXT NOT NULL,
 
-    latitude DECIMAL(9,6) NOT NULL,
+    latitude DECIMAL(9,6),
 
-    longitude DECIMAL(9,6) NOT NULL,
+    longitude DECIMAL(9,6),
 
     address TEXT,
 
