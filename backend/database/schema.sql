@@ -114,8 +114,6 @@ CREATE TABLE waste_categories (
 
     name VARCHAR(50) UNIQUE NOT NULL,
 
-    recyclable BOOLEAN NOT NULL DEFAULT TRUE,
-
     description TEXT
 );
 
