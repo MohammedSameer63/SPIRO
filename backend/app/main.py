@@ -10,6 +10,9 @@ from app.core.exceptions import (
     HouseholdAccessDeniedError,
 )
 
+from app.api.routes.waste_category import (
+    router as waste_category_router,
+)
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
 from app.api.routes.auth import router as auth_router
@@ -119,5 +122,10 @@ app.include_router(
 
 app.include_router(
     household_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    waste_category_router,
     prefix="/api/v1",
 )
