@@ -16,3 +16,6 @@ class HouseholdNotFoundError(Exception):
 
 class HouseholdAccessDeniedError(Exception):
     """Raised when a user is not allowed to access a household."""
+
+class InvalidReportImageError(Exception):
+    """Raised when an uploaded report image is invalid."""

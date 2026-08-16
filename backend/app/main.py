@@ -8,10 +8,14 @@ from app.core.exceptions import (
     AccountNotActiveError,
     HouseholdNotFoundError,
     HouseholdAccessDeniedError,
+    InvalidReportImageError,
 )
 
 from app.api.routes.waste_category import (
     router as waste_category_router,
+)
+from app.api.routes.waste_report import (
+    router as waste_report_router,
 )
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
@@ -96,6 +100,18 @@ async def household_access_denied_handler(
         },
     )
 
+@app.exception_handler(InvalidReportImageError)
+async def invalid_report_image_handler(
+    request: Request,
+    exc: InvalidReportImageError,
+):
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": str(exc),
+        },
+    )
+
 @app.get("/")
 def home():
     return {
@@ -127,5 +143,10 @@ app.include_router(
 
 app.include_router(
     waste_category_router,
+    prefix="/api/v1",
+)
+
+app.include_router(
+    waste_report_router,
     prefix="/api/v1",
 )

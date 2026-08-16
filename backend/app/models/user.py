@@ -14,6 +14,7 @@ from app.enums.user_status import UserStatus
 
 if TYPE_CHECKING:
     from app.models.household import Household
+    from app.models.waste_report import WasteReport
 
 
 class User(Base):
@@ -77,4 +78,8 @@ class User(Base):
 
     household: Mapped["Household | None"] = relationship(
         back_populates="users",
+    )
+
+    waste_reports: Mapped[list["WasteReport"]] = relationship(
+        back_populates="user",
     )
