@@ -53,12 +53,13 @@ export async function apiRequest<T>(
     result = null;
   }
 
-  if (!response.ok) {
-    throw new Error(
+ if (!response.ok) {
+  throw new Error(
+    result?.detail ||
       result?.message ||
-        `Request failed with status ${response.status}`
-    );
-  }
+      `Request failed with status ${response.status}`
+  );
+}
 
   return result as T;
 }

@@ -1,7 +1,144 @@
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import {
+  getReport,
+  type Report,
+} from "../../api/reports";
+
+const API_SERVER_URL = "http://127.0.0.1:8000";
 
 function ReportDetails() {
   const { id } = useParams();
+
+  const [report, setReport] =
+    useState<Report | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  useEffect(() => {
+    if (id) {
+      loadReport(id);
+    }
+  }, [id]);
+
+  async function loadReport(reportId: string) {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await getReport(reportId);
+
+      setReport(response.data);
+    } catch (error: any) {
+      setError(
+        error?.message ||
+          "Failed to load report."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function formatDate(date: string) {
+    return new Date(date).toLocaleString(
+      "en-IN",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+    );
+  }
+
+  function getImageUrl(
+    imageUrl: string
+  ) {
+    const filename = imageUrl
+      .replace(/\\/g, "/")
+      .replace(/^uploads\//, "");
+
+    return `${API_SERVER_URL}/uploads/${filename}`;
+  }
+
+  function getStatusStyle(
+    status: Report["status"]
+  ) {
+    if (status === "COMPLETED") {
+      return {
+        background: "#dcfce7",
+        color: "#166534",
+      };
+    }
+
+    if (status === "PENDING") {
+      return {
+        background: "#fef3c7",
+        color: "#92400e",
+      };
+    }
+
+    if (status === "IN_PROGRESS") {
+      return {
+        background: "#dbeafe",
+        color: "#1e40af",
+      };
+    }
+
+    return {
+      background: "#f3e8ff",
+      color: "#7e22ce",
+    };
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <p>Loading report...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <Link
+          to="/citizen/reports"
+          style={styles.back}
+        >
+          ← Back to My Reports
+        </Link>
+
+        <div style={styles.error}>
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!report) {
+    return (
+      <div>
+        <p>Report not found.</p>
+
+        <Link
+          to="/citizen/reports"
+          style={styles.back}
+        >
+          ← Back to My Reports
+        </Link>
+      </div>
+    );
+  }
+
+  const imageUrl = report.image_url
+    ? getImageUrl(report.image_url)
+    : "";
 
   return (
     <div>
@@ -12,28 +149,59 @@ function ReportDetails() {
         ← Back to My Reports
       </Link>
 
-      <h1 style={styles.title}>Report Details</h1>
+      <h1>Report Details</h1>
+
+      <p style={styles.subtitle}>
+        Detailed information about your
+        waste report.
+      </p>
 
       <div style={styles.card}>
-        <div style={styles.imagePlaceholder}>
-          Waste Image
+        <div style={styles.header}>
+          <h2>Waste Report</h2>
+
+          <span
+            style={{
+              ...styles.status,
+              ...getStatusStyle(
+                report.status
+              ),
+            }}
+          >
+            {report.status}
+          </span>
         </div>
 
-        <h2>Plastic Waste</h2>
+        {/* WASTE IMAGE */}
+        {imageUrl && (
+          <div style={styles.imageSection}>
+            <h3>Waste Image</h3>
 
-        <div style={styles.status}>
-          PENDING
-        </div>
+            <img
+              src={imageUrl}
+              alt="Reported waste"
+              style={styles.image}
+              onError={(e) => {
+                e.currentTarget.style.display =
+                  "none";
+              }}
+            />
+          </div>
+        )}
 
         <div style={styles.section}>
-          <h3>AI Prediction</h3>
+          <h3>Waste Information</h3>
 
           <p>
-            <strong>Category:</strong> Plastic
+            <strong>Description:</strong>{" "}
+            {report.description ||
+              "No description"}
           </p>
 
           <p>
-            <strong>Confidence:</strong> 94.20%
+            <strong>Address:</strong>{" "}
+            {report.address ||
+              "No address"}
           </p>
         </div>
 
@@ -41,35 +209,36 @@ function ReportDetails() {
           <h3>Location</h3>
 
           <p>
-            <strong>Address:</strong> MG Road, Bangalore
+            <strong>Latitude:</strong>{" "}
+            {report.latitude}
           </p>
 
           <p>
-            <strong>Latitude:</strong> 12.9716
-          </p>
-
-          <p>
-            <strong>Longitude:</strong> 77.5946
+            <strong>Longitude:</strong>{" "}
+            {report.longitude}
           </p>
         </div>
 
         <div style={styles.section}>
-          <h3>Description</h3>
+          <h3>Report Status</h3>
 
           <p>
-            Plastic waste found near the roadside.
-          </p>
-        </div>
-
-        <div style={styles.section}>
-          <h3>Report Information</h3>
-
-          <p>
-            <strong>Report ID:</strong> {id}
+            <strong>Status:</strong>{" "}
+            {report.status}
           </p>
 
           <p>
-            <strong>Reported:</strong> 27 July 2026
+            <strong>Submitted:</strong>{" "}
+            {formatDate(
+              report.created_at
+            )}
+          </p>
+
+          <p>
+            <strong>Last Updated:</strong>{" "}
+            {formatDate(
+              report.updated_at
+            )}
           </p>
         </div>
       </div>
@@ -79,49 +248,65 @@ function ReportDetails() {
 
 const styles = {
   back: {
+    display: "inline-block",
+    marginBottom: "20px",
     color: "#15803d",
     textDecoration: "none",
   },
 
-  title: {
-    marginTop: "20px",
+  subtitle: {
+    color: "#6b7280",
+    marginBottom: "25px",
   },
 
   card: {
     maxWidth: "800px",
-    marginTop: "25px",
     padding: "30px",
     background: "white",
     borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 4px 15px rgba(0,0,0,0.08)",
   },
 
-  imagePlaceholder: {
-    height: "250px",
-    background: "#e5e7eb",
-    borderRadius: "10px",
+  header: {
     display: "flex",
-    justifyContent: "center",
+    justifyContent: "space-between",
     alignItems: "center",
     marginBottom: "25px",
-    color: "#6b7280",
-    fontSize: "18px",
   },
 
   status: {
-    display: "inline-block",
     padding: "7px 14px",
     borderRadius: "20px",
-    background: "#fef3c7",
-    color: "#92400e",
+    fontSize: "13px",
     fontWeight: "bold",
-    marginTop: "10px",
+  },
+
+  imageSection: {
+    marginBottom: "30px",
+  },
+
+  image: {
+    width: "100%",
+    maxWidth: "700px",
+    maxHeight: "500px",
+    objectFit: "contain" as const,
+    borderRadius: "10px",
+    border: "1px solid #e5e7eb",
   },
 
   section: {
-    marginTop: "25px",
-    paddingTop: "15px",
-    borderTop: "1px solid #e5e7eb",
+    padding: "20px 0",
+    borderTop:
+      "1px solid #e5e7eb",
+  },
+
+  error: {
+    padding: "15px",
+    marginTop: "20px",
+    borderRadius: "8px",
+    background: "#fee2e2",
+    color: "#991b1b",
   },
 };
 

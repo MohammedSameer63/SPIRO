@@ -1,53 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-type Schedule = {
-  id: string;
-  ward: string;
-  category: string;
-  day: string;
-  startTime: string;
-  endTime: string;
-};
+import {
+  getAdminSchedules,
+  createAdminSchedule,
+  deleteAdminSchedule,
+  getAdminWards,
+  getAdminWasteCategories,
+} from "../../api/admin";
 
-const initialSchedules: Schedule[] = [
-  {
-    id: "schedule-001",
-    ward: "Ward 12",
-    category: "Plastic",
-    day: "Monday",
-    startTime: "08:00",
-    endTime: "12:00",
-  },
-  {
-    id: "schedule-002",
-    ward: "Ward 12",
-    category: "Organic",
-    day: "Wednesday",
-    startTime: "07:00",
-    endTime: "11:00",
-  },
-  {
-    id: "schedule-003",
-    ward: "Ward 15",
-    category: "Paper",
-    day: "Friday",
-    startTime: "09:00",
-    endTime: "13:00",
-  },
-];
-
-const wards = [
-  "Ward 12",
-  "Ward 15",
-  "Ward 18",
-  "Ward 20",
-];
-
-const categories = [
-  "Plastic",
-  "Paper",
-  "Organic",
-];
+import type {
+  AdminSchedule,
+  AdminWard,
+  AdminWasteCategory,
+} from "../../api/admin";
 
 const days = [
   "Monday",
@@ -60,113 +25,198 @@ const days = [
 ];
 
 function Schedules() {
-  const [schedules, setSchedules] =
-    useState(initialSchedules);
+  const [schedules, setSchedules] = useState<AdminSchedule[]>([]);
+  const [wards, setWards] = useState<AdminWard[]>([]);
+  const [categories, setCategories] = useState<
+    AdminWasteCategory[]
+  >([]);
 
-  const [showForm, setShowForm] =
-    useState(false);
+  const [showForm, setShowForm] = useState(false);
 
-  const [ward, setWard] =
-    useState("");
+  const [wardId, setWardId] = useState("");
+  const [categoryId, setCategoryId] = useState("");
+  const [day, setDay] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
 
-  const [category, setCategory] =
-    useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const [day, setDay] =
-    useState("");
+  useEffect(() => {
+    loadData();
+  }, []);
 
-  const [startTime, setStartTime] =
-    useState("");
+  async function loadData() {
+    try {
+      setLoading(true);
+      setError("");
 
-  const [endTime, setEndTime] =
-    useState("");
+      const [
+        schedulesResponse,
+        wardsResponse,
+        categoriesResponse,
+      ] = await Promise.all([
+        getAdminSchedules(),
+        getAdminWards(),
+        getAdminWasteCategories(),
+      ]);
 
-  const handleAddSchedule = (
+      if (schedulesResponse.success) {
+        setSchedules(schedulesResponse.data);
+      }
+
+      if (wardsResponse.success) {
+        setWards(wardsResponse.data);
+      }
+
+      if (categoriesResponse.success) {
+        setCategories(categoriesResponse.data);
+      }
+    } catch (err: any) {
+      console.error(err);
+
+      setError(
+        err?.message ||
+          "Failed to load schedules."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleAddSchedule(
     e: React.FormEvent
-  ) => {
+  ) {
     e.preventDefault();
 
     if (
-      !ward ||
-      !category ||
+      !wardId ||
+      !categoryId ||
       !day ||
       !startTime ||
       !endTime
     ) {
-      alert(
-        "Please fill in all fields."
-      );
-
+      alert("Please fill in all fields.");
       return;
     }
 
-    const duplicate =
-      schedules.some(
-        (schedule) =>
-          schedule.ward === ward &&
-          schedule.category === category &&
-          schedule.day === day
+    if (startTime >= endTime) {
+      alert(
+        "End time must be later than start time."
       );
+      return;
+    }
+
+    const duplicate = schedules.some(
+      (schedule) =>
+        schedule.ward_id === wardId &&
+        schedule.category_id === categoryId &&
+        schedule.day === day
+    );
 
     if (duplicate) {
       alert(
         "Duplicate schedule is not allowed."
       );
-
       return;
     }
 
-    const newSchedule: Schedule = {
-      id:
-        "schedule-" +
-        Date.now(),
+    try {
+      setSaving(true);
+      setError("");
 
-      ward,
-      category,
-      day,
-      startTime,
-      endTime,
-    };
+      const response =
+        await createAdminSchedule(
+          wardId,
+          categoryId,
+          day,
+          startTime,
+          endTime
+        );
 
-    setSchedules([
-      ...schedules,
-      newSchedule,
-    ]);
+      if (response.success) {
+        setSchedules((current) => [
+          ...current,
+          response.data,
+        ]);
 
-    // Reset form
+        setWardId("");
+        setCategoryId("");
+        setDay("");
+        setStartTime("");
+        setEndTime("");
 
-    setWard("");
-    setCategory("");
-    setDay("");
-    setStartTime("");
-    setEndTime("");
+        setShowForm(false);
 
-    setShowForm(false);
+        alert(
+          "Schedule added successfully!"
+        );
+      }
+    } catch (err: any) {
+      console.error(err);
 
-    alert(
-      "Schedule added successfully!"
-    );
-  };
-
-  const deleteSchedule = (
-    id: string
-  ) => {
-    const confirmed =
-      window.confirm(
-        "Delete this schedule?"
+      setError(
+        err?.message ||
+          "Failed to create schedule."
       );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleDeleteSchedule(
+    id: string
+  ) {
+    const confirmed = window.confirm(
+      "Delete this schedule?"
+    );
 
     if (!confirmed) {
       return;
     }
 
-    setSchedules(
-      schedules.filter(
-        (schedule) =>
-          schedule.id !== id
-      )
+    try {
+      setError("");
+
+      await deleteAdminSchedule(id);
+
+      setSchedules((current) =>
+        current.filter(
+          (schedule) =>
+            schedule.id !== id
+        )
+      );
+
+      alert(
+        "Schedule deleted successfully!"
+      );
+    } catch (err: any) {
+      console.error(err);
+
+      setError(
+        err?.message ||
+          "Failed to delete schedule."
+      );
+    }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <h1>Collection Schedules</h1>
+
+        <p style={styles.subtitle}>
+          Manage waste collection schedules by
+          ward.
+        </p>
+
+        <div style={styles.loading}>
+          Loading schedules...
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div>
@@ -177,7 +227,8 @@ function Schedules() {
           </h1>
 
           <p style={styles.subtitle}>
-            Manage waste collection schedules by ward.
+            Manage waste collection schedules
+            by ward.
           </p>
         </div>
 
@@ -193,7 +244,18 @@ function Schedules() {
         </button>
       </div>
 
-      {/* Add Schedule Form */}
+      {error && (
+        <div style={styles.error}>
+          {error}
+
+          <button
+            onClick={loadData}
+            style={styles.retry}
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {showForm && (
         <form
@@ -205,16 +267,15 @@ function Schedules() {
           </h2>
 
           <div style={styles.formGrid}>
-
             <div>
               <label style={styles.label}>
                 Ward
               </label>
 
               <select
-                value={ward}
+                value={wardId}
                 onChange={(e) =>
-                  setWard(e.target.value)
+                  setWardId(e.target.value)
                 }
                 style={styles.input}
               >
@@ -222,12 +283,12 @@ function Schedules() {
                   -- Select Ward --
                 </option>
 
-                {wards.map((item) => (
+                {wards.map((ward) => (
                   <option
-                    key={item}
-                    value={item}
+                    key={ward.id}
+                    value={ward.id}
                   >
-                    {item}
+                    {ward.name}
                   </option>
                 ))}
               </select>
@@ -239,9 +300,9 @@ function Schedules() {
               </label>
 
               <select
-                value={category}
+                value={categoryId}
                 onChange={(e) =>
-                  setCategory(
+                  setCategoryId(
                     e.target.value
                   )
                 }
@@ -252,12 +313,12 @@ function Schedules() {
                 </option>
 
                 {categories.map(
-                  (item) => (
+                  (category) => (
                     <option
-                      key={item}
-                      value={item}
+                      key={category.id}
+                      value={category.id}
                     >
-                      {item}
+                      {category.name}
                     </option>
                   )
                 )}
@@ -324,95 +385,108 @@ function Schedules() {
                 style={styles.input}
               />
             </div>
-
           </div>
 
           <button
             type="submit"
-            style={styles.saveButton}
+            disabled={saving}
+            style={{
+              ...styles.saveButton,
+              opacity: saving ? 0.6 : 1,
+              cursor: saving
+                ? "not-allowed"
+                : "pointer",
+            }}
           >
-            Save Schedule
+            {saving
+              ? "Saving..."
+              : "Save Schedule"}
           </button>
         </form>
       )}
 
-      {/* Schedule Table */}
-
       <div style={styles.tableWrapper}>
+        {schedules.length === 0 ? (
+          <div style={styles.empty}>
+            <h2>
+              No schedules found
+            </h2>
 
-        <table style={styles.table}>
+            <p>
+              Add a collection schedule
+              using the button above.
+            </p>
+          </div>
+        ) : (
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={styles.th}>
+                  Ward
+                </th>
 
-          <thead>
-            <tr>
-              <th style={styles.th}>
-                Ward
-              </th>
+                <th style={styles.th}>
+                  Category
+                </th>
 
-              <th style={styles.th}>
-                Category
-              </th>
+                <th style={styles.th}>
+                  Day
+                </th>
 
-              <th style={styles.th}>
-                Day
-              </th>
+                <th style={styles.th}>
+                  Time
+                </th>
 
-              <th style={styles.th}>
-                Time
-              </th>
+                <th style={styles.th}>
+                  Action
+                </th>
+              </tr>
+            </thead>
 
-              <th style={styles.th}>
-                Action
-              </th>
-            </tr>
-          </thead>
+            <tbody>
+              {schedules.map(
+                (schedule) => (
+                  <tr
+                    key={schedule.id}
+                  >
+                    <td style={styles.td}>
+                      {schedule.ward}
+                    </td>
 
-          <tbody>
+                    <td style={styles.td}>
+                      {schedule.category}
+                    </td>
 
-            {schedules.map(
-              (schedule) => (
-                <tr key={schedule.id}>
+                    <td style={styles.td}>
+                      {schedule.day}
+                    </td>
 
-                  <td style={styles.td}>
-                    {schedule.ward}
-                  </td>
+                    <td style={styles.td}>
+                      {schedule.startTime}
+                      {" - "}
+                      {schedule.endTime}
+                    </td>
 
-                  <td style={styles.td}>
-                    {schedule.category}
-                  </td>
-
-                  <td style={styles.td}>
-                    {schedule.day}
-                  </td>
-
-                  <td style={styles.td}>
-                    {schedule.startTime}
-                    {" - "}
-                    {schedule.endTime}
-                  </td>
-
-                  <td style={styles.td}>
-                    <button
-                      onClick={() =>
-                        deleteSchedule(
-                          schedule.id
-                        )
-                      }
-                      style={
-                        styles.deleteButton
-                      }
-                    >
-                      Delete
-                    </button>
-                  </td>
-
-                </tr>
-              )
-            )}
-
-          </tbody>
-
-        </table>
-
+                    <td style={styles.td}>
+                      <button
+                        onClick={() =>
+                          handleDeleteSchedule(
+                            schedule.id
+                          )
+                        }
+                        style={
+                          styles.deleteButton
+                        }
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                )
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );
@@ -482,8 +556,8 @@ const styles = {
     borderRadius: "7px",
     background: "#15803d",
     color: "white",
-    cursor: "pointer",
     fontSize: "15px",
+    fontWeight: "bold",
   },
 
   tableWrapper: {
@@ -496,7 +570,8 @@ const styles = {
 
   table: {
     width: "100%",
-    borderCollapse: "collapse" as const,
+    borderCollapse:
+      "collapse" as const,
   },
 
   th: {
@@ -518,6 +593,37 @@ const styles = {
     border: "none",
     borderRadius: "6px",
     background: "#dc2626",
+    color: "white",
+    cursor: "pointer",
+  },
+
+  loading: {
+    padding: "30px",
+    background: "white",
+    borderRadius: "10px",
+    color: "#6b7280",
+  },
+
+  empty: {
+    padding: "40px",
+    textAlign: "center" as const,
+    color: "#6b7280",
+  },
+
+  error: {
+    padding: "15px",
+    marginBottom: "20px",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    borderRadius: "8px",
+  },
+
+  retry: {
+    marginLeft: "15px",
+    padding: "8px 14px",
+    border: "none",
+    borderRadius: "6px",
+    background: "#15803d",
     color: "white",
     cursor: "pointer",
   },

@@ -69,16 +69,7 @@ function Login() {
     setLoading(false);
   }
 };
-  const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    // Mock login for now
-    localStorage.setItem("token", "mock-jwt-token");
-
-    navigate("/citizen/dashboard");
-  };
 
   return (
     <div style={styles.container}>
@@ -90,29 +81,27 @@ function Login() {
         <h2>Welcome Back</h2>
 
         <form onSubmit={handleLogin}>
-          <label>Email</label>
+          <div style={styles.field}>
+  <label>Email</label>
+  <input
+    type="email"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    placeholder="Enter your email"
+    required
+  />
+</div>
 
-          <input
-  type="email"
-  value={email}
-  onChange={(e) =>
-    setEmail(e.target.value)
-  }
-  placeholder="Enter your email"
-  required
-/>
-
-          <label>Password</label>
-
-          <input
-  type="password"
-  value={password}
-  onChange={(e) =>
-    setPassword(e.target.value)
-  }
-  placeholder="Enter your password"
-  required
-/>
+<div style={styles.field}>
+  <label>Password</label>
+  <input
+    type="password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    placeholder="Enter your password"
+    required
+  />
+</div>
 
 <button
   type="submit"
@@ -123,7 +112,6 @@ function Login() {
     : "Login"}
 </button>
 
-          <button type="submit">Login</button>
 
           {error && (
   <p style={{ color: "red" }}>
@@ -158,6 +146,14 @@ const styles = {
     borderRadius: "12px",
     boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
   },
+
+
+    field: {
+  display: "flex",
+  flexDirection: "column" as const,
+  gap: "8px",
+  marginBottom: "18px", 
+ },
 
   subtitle: {
     color: "#6b7280",

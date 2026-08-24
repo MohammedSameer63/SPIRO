@@ -17,3 +17,6 @@ node_modules/
 
 # OS files
 .DS_Store
+
+# Uploaded report images
+backend/uploads/

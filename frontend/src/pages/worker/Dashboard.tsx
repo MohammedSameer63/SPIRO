@@ -1,22 +1,97 @@
+import { useEffect, useState } from "react";
+
+import {
+  getWorkerStats,
+  getWorkerWards,
+} from "../../api/reports";
+
+import type { WorkerWard } from "../../api/reports";
+
 function Dashboard() {
-  const stats = [
+  const [stats, setStats] = useState({
+    pending: 0,
+    accepted: 0,
+    in_progress: 0,
+    completed_today: 0,
+  });
+
+  const [wards, setWards] =
+    useState<WorkerWard[]>([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState("");
+
+  useEffect(() => {
+    loadDashboard();
+  }, []);
+
+  async function loadDashboard() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [
+        statsResponse,
+        wardsResponse,
+      ] = await Promise.all([
+        getWorkerStats(),
+        getWorkerWards(),
+      ]);
+
+      if (statsResponse.success) {
+        setStats(statsResponse.data);
+      }
+
+      if (wardsResponse.success) {
+        setWards(wardsResponse.data);
+      }
+    } catch (err: any) {
+      console.error(err);
+
+      setError(
+        err?.message ||
+          "Failed to load worker dashboard."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const dashboardStats = [
     {
       title: "Pending Reports",
-      value: 12,
+      value: stats.pending,
     },
     {
       title: "Accepted Reports",
-      value: 4,
+      value: stats.accepted,
     },
     {
       title: "In Progress",
-      value: 2,
+      value: stats.in_progress,
     },
     {
       title: "Completed Today",
-      value: 8,
+      value: stats.completed_today,
     },
   ];
+
+  if (loading) {
+    return (
+      <div>
+        <h1>Worker Dashboard</h1>
+
+        <p style={styles.subtitle}>
+          Manage waste reports from your assigned wards.
+        </p>
+
+        <p>Loading dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -26,20 +101,51 @@ function Dashboard() {
         Manage waste reports from your assigned wards.
       </p>
 
+      {error && (
+        <div style={styles.error}>
+          {error}
+
+          <button
+            onClick={loadDashboard}
+            style={styles.retry}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Assigned Wards */}
+
       <div style={styles.wards}>
         <h2>Assigned Wards</h2>
 
-        <span style={styles.ward}>
-          Ward 12
-        </span>
-
-        <span style={styles.ward}>
-          Ward 15
-        </span>
+        {wards.length === 0 ? (
+          <p style={styles.noWards}>
+            No wards assigned to you yet.
+          </p>
+        ) : (
+          <div>
+            {wards.map((ward) => (
+              <span
+                key={ward.id}
+                style={styles.ward}
+                title={
+                  ward.description ||
+                  ward.zone ||
+                  ""
+                }
+              >
+                {ward.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
+      {/* Statistics */}
+
       <div style={styles.grid}>
-        {stats.map((stat) => (
+        {dashboardStats.map((stat) => (
           <div
             key={stat.title}
             style={styles.card}
@@ -71,10 +177,15 @@ const styles = {
   ward: {
     display: "inline-block",
     marginRight: "10px",
+    marginBottom: "8px",
     padding: "8px 14px",
     background: "#dcfce7",
     color: "#166534",
     borderRadius: "20px",
+  },
+
+  noWards: {
+    color: "#6b7280",
   },
 
   grid: {
@@ -99,6 +210,24 @@ const styles = {
   value: {
     fontSize: "32px",
     margin: "10px 0 0",
+  },
+
+  error: {
+    padding: "15px",
+    marginBottom: "20px",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    borderRadius: "8px",
+  },
+
+  retry: {
+    marginLeft: "15px",
+    padding: "8px 14px",
+    border: "none",
+    borderRadius: "6px",
+    background: "#15803d",
+    color: "white",
+    cursor: "pointer",
   },
 };
 

@@ -1,67 +1,151 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { register } from "../../api/auth";
 
 function Register() {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
   const navigate = useNavigate();
 
-  const handleRegister = (e: React.FormEvent) => {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    // Mock registration for now
-    alert("Registration successful!");
+    console.log("REGISTER BUTTON CLICKED");
 
-    navigate("/login");
+    setError("");
+    setLoading(true);
+
+    try {
+      console.log("Sending registration request...");
+
+      const response = await register({
+        name,
+        email,
+        password,
+        phone: phone || undefined,
+      });
+
+      console.log("Registration response:", response);
+
+      alert("Registration successful! Please login.");
+
+      navigate("/login");
+    } catch (error: any) {
+      console.error("Registration error:", error);
+
+      setError(
+        error?.message ||
+          "Registration failed. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.card}>
-        <h1>SPIRO</h1>
 
-        <p style={styles.subtitle}>Create your account</p>
+        <h1 style={styles.title}>SPIRO</h1>
+
+        <p style={styles.subtitle}>
+          Smart Waste Management System
+        </p>
+
+        <h2 style={styles.heading}>
+          Create your account
+        </h2>
 
         <form onSubmit={handleRegister}>
-          <label>Name</label>
 
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
+          <div style={styles.field}>
+            <label>Name</label>
 
-          <label>Email</label>
+            <input
+              type="text"
+              placeholder="Enter your name"
+              value={name}
+              onChange={(e) =>
+                setName(e.target.value)
+              }
+              required
+            />
+          </div>
 
-          <input
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <div style={styles.field}>
+            <label>Email</label>
 
-          <label>Password</label>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) =>
+                setEmail(e.target.value)
+              }
+              required
+            />
+          </div>
 
-          <input
-            type="password"
-            placeholder="Create a password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+          <div style={styles.field}>
+            <label>Phone</label>
 
-          <button type="submit">Register</button>
+            <input
+              type="tel"
+              placeholder="Enter your phone number"
+              value={phone}
+              onChange={(e) =>
+                setPhone(e.target.value)
+              }
+            />
+          </div>
+
+          <div style={styles.field}>
+            <label>Password</label>
+
+            <input
+              type="password"
+              placeholder="Create a password"
+              value={password}
+              onChange={(e) =>
+                setPassword(e.target.value)
+              }
+              required
+            />
+          </div>
+
+          {error && (
+            <p style={styles.error}>
+              {error}
+            </p>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            style={styles.button}
+          >
+            {loading
+              ? "Registering..."
+              : "Register"}
+          </button>
+
         </form>
 
         <p style={styles.loginText}>
           Already have an account?{" "}
-          <Link to="/login">Login</Link>
+          <Link to="/login">
+            Login
+          </Link>
         </p>
+
       </div>
     </div>
   );
@@ -81,12 +165,47 @@ const styles = {
     padding: "40px",
     background: "white",
     borderRadius: "12px",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.1)",
+    boxShadow:
+      "0 10px 30px rgba(0,0,0,0.1)",
+  },
+
+  title: {
+    margin: "0",
+    fontSize: "36px",
+    color: "#15803d",
   },
 
   subtitle: {
     color: "#6b7280",
+    marginTop: "5px",
+    marginBottom: "30px",
+  },
+
+  heading: {
     marginBottom: "25px",
+  },
+
+  field: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "8px",
+    marginBottom: "18px",
+  },
+
+  button: {
+    width: "100%",
+    padding: "12px",
+    background: "#15803d",
+    color: "white",
+    border: "none",
+    borderRadius: "6px",
+    cursor: "pointer",
+    fontSize: "16px",
+  },
+
+  error: {
+    color: "#dc2626",
+    marginBottom: "15px",
   },
 
   loginText: {

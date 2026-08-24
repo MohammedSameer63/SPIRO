@@ -1,18 +1,81 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { createReport } from "../../api/reports";
 
 function SubmitReport() {
+  const navigate = useNavigate();
+
   const [image, setImage] = useState<File | null>(null);
   const [description, setDescription] = useState("");
   const [address, setAddress] = useState("");
   const [latitude, setLatitude] = useState("");
   const [longitude, setLongitude] = useState("");
-  const [submitted, setSubmitted] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    // Mock submission for now
-    setSubmitted(true);
+    setError("");
+    setSubmitted(false);
+
+    if (!image) {
+      setError("Please select a waste image.");
+      return;
+    }
+
+    const lat = Number(latitude);
+    const lng = Number(longitude);
+
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      setError("Please enter valid latitude and longitude.");
+      return;
+    }
+
+    if (lat < -90 || lat > 90) {
+      setError("Latitude must be between -90 and 90.");
+      return;
+    }
+
+    if (lng < -180 || lng > 180) {
+      setError("Longitude must be between -180 and 180.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await createReport(
+        image,
+        description,
+        address,
+        lat,
+        lng
+      );
+
+      setSubmitted(true);
+
+      setImage(null);
+      setDescription("");
+      setAddress("");
+      setLatitude("");
+      setLongitude("");
+
+      setTimeout(() => {
+        navigate("/citizen/reports");
+      }, 1000);
+    } catch (error: any) {
+      setError(
+        error?.message ||
+          "Failed to submit report."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -28,6 +91,12 @@ function SubmitReport() {
           Report submitted successfully!
           <br />
           Status: PENDING
+        </div>
+      )}
+
+      {error && (
+        <div style={styles.error}>
+          {error}
         </div>
       )}
 
@@ -106,8 +175,11 @@ function SubmitReport() {
         <button
           type="submit"
           style={styles.button}
+          disabled={loading}
         >
-          Submit Report
+          {loading
+            ? "Submitting..."
+            : "Submit Report"}
         </button>
       </form>
     </div>
@@ -128,6 +200,14 @@ const styles = {
     color: "#166534",
   },
 
+  error: {
+    padding: "15px",
+    marginBottom: "20px",
+    borderRadius: "8px",
+    background: "#fee2e2",
+    color: "#991b1b",
+  },
+
   form: {
     maxWidth: "600px",
     display: "flex",
@@ -143,6 +223,7 @@ const styles = {
     background: "#15803d",
     color: "white",
     fontSize: "16px",
+    cursor: "pointer",
   },
 };
 

@@ -20,6 +20,7 @@ import AdminLayout from "./layouts/AdminLayout";
 import WorkerDashboard from "./pages/worker/Dashboard";
 import WorkerQueue from "./pages/worker/Queue";
 import ActiveReports from "./pages/worker/ActiveReports";
+import WorkerSchedules from "./pages/worker/Schedules";
 
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminWorkers from "./pages/admin/Workers";
@@ -64,26 +65,31 @@ function App() {
             element={<ReportDetails />}
           />
         </Route>
-        {/* Worker */}
-         <Route
-           path="/worker"
-            element={<WorkerLayout />}
-        >
-          <Route
-           path="dashboard"
-           element={<WorkerDashboard />}
-          />
+       {/* Worker */}
+<Route
+  path="/worker"
+  element={<WorkerLayout />}
+>
+  <Route
+    path="dashboard"
+    element={<WorkerDashboard />}
+  />
 
-          <Route
-            path="queue"
-            element={<WorkerQueue />}
-          />
+  <Route
+    path="queue"
+    element={<WorkerQueue />}
+  />
 
-          <Route
-            path="active"
-            element={<ActiveReports />}
-          />
-        </Route>
+  <Route
+    path="active"
+    element={<ActiveReports />}
+  />
+
+  <Route
+    path="schedules"
+    element={<WorkerSchedules />}
+  />
+</Route>
         {/* Admin */}
 
          <Route

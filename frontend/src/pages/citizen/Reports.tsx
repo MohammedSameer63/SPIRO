@@ -1,33 +1,77 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-const reports = [
-  {
-    id: "report-001",
-    category: "Plastic",
-    address: "MG Road, Bangalore",
-    status: "PENDING",
-    confidence: "94.20%",
-    date: "27 July 2026",
-  },
-  {
-    id: "report-002",
-    category: "Paper",
-    address: "Church Street, Bangalore",
-    status: "COMPLETED",
-    confidence: "91.50%",
-    date: "26 July 2026",
-  },
-  {
-    id: "report-003",
-    category: "Organic",
-    address: "Indiranagar, Bangalore",
-    status: "IN_PROGRESS",
-    confidence: "96.10%",
-    date: "25 July 2026",
-  },
-];
+import { getMyReports } from "../../api/reports";
+import type { Report } from "../../api/reports";
 
 function Reports() {
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    loadReports();
+  }, []);
+
+  async function loadReports() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await getMyReports();
+
+      if (response.success) {
+        setReports(response.data);
+      } else {
+        setError("Failed to load reports.");
+      }
+    } catch (err: any) {
+      console.error("Failed to load reports:", err);
+
+      setError(
+        err?.message || "Failed to load reports."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <h1>My Reports</h1>
+
+        <p style={styles.subtitle}>
+          View all the waste reports you have submitted.
+        </p>
+
+        <p>Loading reports...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div>
+        <h1>My Reports</h1>
+
+        <p style={styles.subtitle}>
+          View all the waste reports you have submitted.
+        </p>
+
+        <div style={styles.error}>
+          {error}
+        </div>
+
+        <button
+          onClick={loadReports}
+          style={styles.retryButton}
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <h1>My Reports</h1>
@@ -36,55 +80,85 @@ function Reports() {
         View all the waste reports you have submitted.
       </p>
 
-      <div style={styles.container}>
-        {reports.map((report) => (
-          <div key={report.id} style={styles.card}>
-            <div style={styles.header}>
-              <h2>{report.category} Waste</h2>
+      {reports.length === 0 ? (
+        <div style={styles.empty}>
+          <h2>No reports yet</h2>
 
-              <span
-                style={{
-                  ...styles.status,
-                  background:
-                    report.status === "COMPLETED"
-                      ? "#dcfce7"
-                      : report.status === "PENDING"
-                      ? "#fef3c7"
-                      : "#dbeafe",
-                  color:
-                    report.status === "COMPLETED"
-                      ? "#166534"
-                      : report.status === "PENDING"
-                      ? "#92400e"
-                      : "#1e40af",
-                }}
-              >
-                {report.status}
-              </span>
-            </div>
+          <p>
+            You have not submitted any waste reports.
+          </p>
 
-            <p>
-              <strong>Address:</strong> {report.address}
-            </p>
-
-            <p>
-              <strong>AI Confidence:</strong>{" "}
-              {report.confidence}
-            </p>
-
-            <p>
-              <strong>Reported:</strong> {report.date}
-            </p>
-
-            <Link
-              to={`/citizen/reports/${report.id}`}
-              style={styles.button}
+          <Link
+            to="/citizen/report"
+            style={styles.button}
+          >
+            Submit Your First Report
+          </Link>
+        </div>
+      ) : (
+        <div style={styles.container}>
+          {reports.map((report) => (
+            <div
+              key={report.id}
+              style={styles.card}
             >
-              View Details
-            </Link>
-          </div>
-        ))}
-      </div>
+              <div style={styles.header}>
+                <h2>Waste Report</h2>
+
+                <span
+                  style={{
+                    ...styles.status,
+                    background:
+                      report.status === "COMPLETED"
+                        ? "#dcfce7"
+                        : report.status === "PENDING"
+                        ? "#fef3c7"
+                        : "#dbeafe",
+
+                    color:
+                      report.status === "COMPLETED"
+                        ? "#166534"
+                        : report.status === "PENDING"
+                        ? "#92400e"
+                        : "#1e40af",
+                  }}
+                >
+                  {report.status}
+                </span>
+              </div>
+
+              <p>
+                <strong>Description:</strong>{" "}
+                {report.description || "No description"}
+              </p>
+
+              <p>
+                <strong>Address:</strong>{" "}
+                {report.address || "No address"}
+              </p>
+
+              <p>
+                <strong>Location:</strong>{" "}
+                {report.latitude}, {report.longitude}
+              </p>
+
+              <p>
+                <strong>Reported:</strong>{" "}
+                {new Date(
+                  report.created_at
+                ).toLocaleString()}
+              </p>
+
+              <Link
+                to={`/citizen/reports/${report.id}`}
+                style={styles.button}
+              >
+                View Details
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -131,6 +205,31 @@ const styles = {
     color: "white",
     borderRadius: "7px",
     textDecoration: "none",
+  },
+
+  empty: {
+    padding: "40px",
+    background: "white",
+    borderRadius: "12px",
+    textAlign: "center" as const,
+    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+  },
+
+  error: {
+    padding: "15px",
+    marginBottom: "15px",
+    borderRadius: "8px",
+    background: "#fee2e2",
+    color: "#b91c1c",
+  },
+
+  retryButton: {
+    padding: "10px 18px",
+    border: "none",
+    borderRadius: "7px",
+    background: "#15803d",
+    color: "white",
+    cursor: "pointer",
   },
 };
 

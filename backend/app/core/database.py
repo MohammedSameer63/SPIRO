@@ -4,7 +4,9 @@ from sqlalchemy.orm import DeclarativeBase, sessionmaker
 from app.core.config import settings
 
 
-engine = create_engine(settings.database_url)
+engine = create_engine(
+    settings.database_url
+)
 
 
 SessionLocal = sessionmaker(
@@ -23,6 +25,5 @@ def get_db():
 
     try:
         yield db
-
     finally:
         db.close()

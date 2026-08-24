@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: spiro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: spiro123
+      POSTGRES_DB: spiro
+    ports:
+      - "5432:5432"
+    volumes:
+      - spiro_postgres_data:/var/lib/postgresql/data
+
+volumes:
+  spiro_postgres_data:

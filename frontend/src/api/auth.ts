@@ -23,10 +23,19 @@ export type RegisterRequest = {
   email: string;
   password: string;
   phone?: string;
-  wardId: string;
-  houseNumber: string;
-  streetName?: string;
-  address: string;
+};
+
+export type RegisterResponse = {
+  success: boolean;
+  message: string;
+  data: {
+    user: {
+      id: string;
+      name: string;
+      email: string;
+      role: "CITIZEN" | "WORKER" | "ADMIN";
+    };
+  };
 };
 
 export async function login(
@@ -45,7 +54,7 @@ export async function login(
 export async function register(
   data: RegisterRequest
 ) {
-  return apiRequest(
+  return apiRequest<RegisterResponse>(
     "/auth/register",
     {
       method: "POST",

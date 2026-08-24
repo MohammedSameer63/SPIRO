@@ -1,38 +1,105 @@
-import { useState } from "react";
-
-const initialReports = [
-  {
-    reportId: "report-010",
-    status: "IN_PROGRESS",
-    address: "MG Road",
-    prediction: "Plastic",
-    acceptedAt: "27 July 2026, 11:00 AM",
-  },
-  {
-    reportId: "report-011",
-    status: "IN_PROGRESS",
-    address: "Koramangala",
-    prediction: "Organic",
-    acceptedAt: "27 July 2026, 11:30 AM",
-  },
-];
+import { useEffect, useState } from "react";
+import {
+  getWorkerActiveReports,
+  updateWorkerReportStatus,
+} from "../../api/reports";
+import type { Report } from "../../api/reports";
 
 function ActiveReports() {
-  const [reports, setReports] =
-    useState(initialReports);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleComplete = (reportId: string) => {
-    setReports((currentReports) =>
-      currentReports.filter(
-        (report) =>
-          report.reportId !== reportId
-      )
-    );
+  useEffect(() => {
+    loadReports();
+  }, []);
 
-    alert(
-      "Report marked as completed!"
+  async function loadReports() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response =
+        await getWorkerActiveReports();
+
+      if (response.success) {
+        setReports(response.data);
+      }
+    } catch (err: any) {
+      console.error(err);
+
+      setError(
+        err?.message ||
+          "Failed to load active reports."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleStart(reportId: string) {
+    try {
+      await updateWorkerReportStatus(
+        reportId,
+        "IN_PROGRESS"
+      );
+
+      setReports((currentReports) =>
+        currentReports.map((report) =>
+          report.id === reportId
+            ? {
+                ...report,
+                status: "IN_PROGRESS",
+              }
+            : report
+        )
+      );
+
+      alert("Report marked as in progress!");
+    } catch (err: any) {
+      console.error(err);
+
+      alert(
+        err?.message ||
+          "Failed to start report."
+      );
+    }
+  }
+
+  async function handleComplete(reportId: string) {
+    try {
+      await updateWorkerReportStatus(
+        reportId,
+        "COMPLETED"
+      );
+
+      setReports((currentReports) =>
+        currentReports.filter(
+          (report) => report.id !== reportId
+        )
+      );
+
+      alert(
+        "Report marked as completed!"
+      );
+    } catch (err: any) {
+      console.error(err);
+
+      alert(
+        err?.message ||
+          "Failed to complete report."
+      );
+    }
+  }
+
+  if (loading) {
+    return (
+      <div>
+        <h1>Active Reports</h1>
+        <p>Loading active reports...</p>
+      </div>
     );
-  };
+  }
 
   return (
     <div>
@@ -42,6 +109,19 @@ function ActiveReports() {
         Reports currently assigned to you.
       </p>
 
+      {error && (
+        <div style={styles.error}>
+          {error}
+
+          <button
+            onClick={loadReports}
+            style={styles.retry}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       <div style={styles.container}>
         {reports.length === 0 ? (
           <div style={styles.empty}>
@@ -50,39 +130,80 @@ function ActiveReports() {
         ) : (
           reports.map((report) => (
             <div
-              key={report.reportId}
+              key={report.id}
               style={styles.card}
             >
               <div style={styles.header}>
-                <h2>
-                  {report.prediction} Waste
-                </h2>
+                <h2>Waste Report</h2>
 
-                <span style={styles.status}>
+                <span
+                  style={{
+                    ...styles.status,
+                    background:
+                      report.status ===
+                      "ACCEPTED"
+                        ? "#fef3c7"
+                        : "#dbeafe",
+
+                    color:
+                      report.status ===
+                      "ACCEPTED"
+                        ? "#92400e"
+                        : "#1e40af",
+                  }}
+                >
                   {report.status}
                 </span>
               </div>
 
               <p>
-                <strong>Address:</strong>{" "}
-                {report.address}
+                <strong>Description:</strong>{" "}
+                {report.description ||
+                  "No description"}
               </p>
 
               <p>
-                <strong>Accepted:</strong>{" "}
-                {report.acceptedAt}
+                <strong>Address:</strong>{" "}
+                {report.address ||
+                  "No address"}
               </p>
 
-              <button
-                onClick={() =>
-                  handleComplete(
-                    report.reportId
-                  )
-                }
-                style={styles.button}
-              >
-                Mark Completed
-              </button>
+              <p>
+                <strong>Location:</strong>{" "}
+                {report.latitude},{" "}
+                {report.longitude}
+              </p>
+
+              <p>
+                <strong>Updated:</strong>{" "}
+                {new Date(
+                  report.updated_at
+                ).toLocaleString()}
+              </p>
+
+              {report.status ===
+                "ACCEPTED" && (
+                <button
+                  onClick={() =>
+                    handleStart(report.id)
+                  }
+                  style={styles.button}
+                >
+                  Start Work
+                </button>
+              )}
+
+              {report.status ===
+                "IN_PROGRESS" && (
+                <button
+                  onClick={() =>
+                    handleComplete(report.id)
+                  }
+                  style={styles.button}
+                >
+                  Mark Completed
+                </button>
+              )}
             </div>
           ))
         )}
@@ -121,8 +242,6 @@ const styles = {
   status: {
     padding: "6px 12px",
     borderRadius: "20px",
-    background: "#dbeafe",
-    color: "#1e40af",
     fontWeight: "bold",
     fontSize: "13px",
   },
@@ -144,6 +263,24 @@ const styles = {
     borderRadius: "10px",
     textAlign: "center" as const,
     color: "#6b7280",
+  },
+
+  error: {
+    padding: "15px",
+    marginBottom: "20px",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    borderRadius: "8px",
+  },
+
+  retry: {
+    marginLeft: "15px",
+    padding: "8px 14px",
+    border: "none",
+    borderRadius: "6px",
+    background: "#15803d",
+    color: "white",
+    cursor: "pointer",
   },
 };
 

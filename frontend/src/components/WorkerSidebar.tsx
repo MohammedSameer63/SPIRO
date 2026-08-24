@@ -19,28 +19,35 @@ function WorkerSidebar() {
         </p>
       </div>
 
-      <nav style={styles.nav}>
-        <NavLink
-          to="/worker/dashboard"
-          style={linkStyle}
-        >
-          🏠 Dashboard
-        </NavLink>
+     <nav style={styles.nav}>
+  <NavLink
+    to="/worker/dashboard"
+    style={linkStyle}
+  >
+    📊 Dashboard
+  </NavLink>
 
-        <NavLink
-          to="/worker/queue"
-          style={linkStyle}
-        >
-          📋 Report Queue
-        </NavLink>
+  <NavLink
+    to="/worker/queue"
+    style={linkStyle}
+  >
+    📋 Report Queue
+  </NavLink>
 
-        <NavLink
-          to="/worker/active"
-          style={linkStyle}
-        >
-          🚛 Active Reports
-        </NavLink>
-      </nav>
+  <NavLink
+    to="/worker/active"
+    style={linkStyle}
+  >
+    🚛 Active Reports
+  </NavLink>
+
+  <NavLink
+    to="/worker/schedules"
+    style={linkStyle}
+  >
+    📅 Collection Schedules
+  </NavLink>
+</nav>
 
       <button
         onClick={handleLogout}
