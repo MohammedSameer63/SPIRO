@@ -3,6 +3,7 @@ from .household import Household
 from .ward import Ward
 from .waste_category import WasteCategory
 from .waste_report import WasteReport
+from .prediction import Prediction
 
 __all__ = [
     "User",
@@ -10,4 +11,5 @@ __all__ = [
     "Ward",
     "WasteCategory"
     "WasteReport"
+    "Prediction"
 ]

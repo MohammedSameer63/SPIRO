@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Header, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -49,3 +49,16 @@ def get_current_user(
         )
 
     return user
+
+def verify_ml_service(
+    x_ml_api_key: str | None = Header(default=None),
+) -> None:
+    """
+    Verify requests originating from the ML service.
+    """
+
+    if x_ml_api_key != settings.ml_service_api_key:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid ML service credentials.",
+        )

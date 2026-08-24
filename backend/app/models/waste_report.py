@@ -14,6 +14,7 @@ from app.enums.report_status import ReportStatus
 
 if TYPE_CHECKING:
     from app.models.user import User
+    from app.models.prediction import Prediction
 
 
 class WasteReport(Base):
@@ -84,4 +85,9 @@ class WasteReport(Base):
 
     user: Mapped["User"] = relationship(
         back_populates="waste_reports",
+    )
+
+    prediction: Mapped["Prediction | None"] = relationship(
+        back_populates="report",
+        uselist=False,
     )

@@ -9,6 +9,9 @@ from app.core.exceptions import (
     HouseholdNotFoundError,
     HouseholdAccessDeniedError,
     InvalidReportImageError,
+    ReportNotFoundError,
+    WasteCategoryNotFoundError,
+    PredictionAlreadyExistsError,
 )
 
 from app.api.routes.waste_category import (
@@ -16,6 +19,9 @@ from app.api.routes.waste_category import (
 )
 from app.api.routes.waste_report import (
     router as waste_report_router,
+)
+from app.api.routes.internal_prediction import (
+    router as internal_prediction_router,
 )
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
@@ -112,6 +118,44 @@ async def invalid_report_image_handler(
         },
     )
 
+@app.exception_handler(ReportNotFoundError)
+async def report_not_found_handler(
+    request: Request,
+    exc: ReportNotFoundError,
+):
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": str(exc),
+        },
+    )
+
+
+@app.exception_handler(WasteCategoryNotFoundError)
+async def waste_category_not_found_handler(
+    request: Request,
+    exc: WasteCategoryNotFoundError,
+):
+    return JSONResponse(
+        status_code=404,
+        content={
+            "detail": str(exc),
+        },
+    )
+
+
+@app.exception_handler(PredictionAlreadyExistsError)
+async def prediction_already_exists_handler(
+    request: Request,
+    exc: PredictionAlreadyExistsError,
+):
+    return JSONResponse(
+        status_code=409,
+        content={
+            "detail": str(exc),
+        },
+    )
+
 @app.get("/")
 def home():
     return {
@@ -149,4 +193,9 @@ app.include_router(
 app.include_router(
     waste_report_router,
     prefix="/api/v1",
+)
+
+app.include_router(
+    internal_prediction_router,
+    prefix=settings.api_prefix,
 )

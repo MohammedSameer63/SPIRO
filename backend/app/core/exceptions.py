@@ -19,3 +19,14 @@ class HouseholdAccessDeniedError(Exception):
 
 class InvalidReportImageError(Exception):
     """Raised when an uploaded report image is invalid."""
+
+class ReportNotFoundError(Exception):
+    """Raised when the requested waste report does not exist."""
+
+
+class WasteCategoryNotFoundError(Exception):
+    """Raised when the requested waste category does not exist."""
+
+
+class PredictionAlreadyExistsError(Exception):
+    """Raised when a report already has a prediction."""

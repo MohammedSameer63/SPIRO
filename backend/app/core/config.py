@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     yolo_model_path: str = "models/yolo.pt"
     efficientnet_model_path: str = "models/efficientnetv2.pth"
 
+    # Internal Services
+    ml_service_api_key: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
