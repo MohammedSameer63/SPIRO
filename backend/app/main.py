@@ -12,6 +12,7 @@ from app.core.exceptions import (
     ReportNotFoundError,
     WasteCategoryNotFoundError,
     PredictionAlreadyExistsError,
+    InvalidCollectionScheduleError,
 )
 
 from app.api.routes.waste_category import (
@@ -22,6 +23,9 @@ from app.api.routes.waste_report import (
 )
 from app.api.routes.internal_prediction import (
     router as internal_prediction_router,
+)
+from app.api.routes.collection_schedule import (
+    router as collection_schedule_router,
 )
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
@@ -156,6 +160,18 @@ async def prediction_already_exists_handler(
         },
     )
 
+@app.exception_handler(InvalidCollectionScheduleError)
+async def invalid_collection_schedule_handler(
+    request: Request,
+    exc: InvalidCollectionScheduleError,
+):
+    return JSONResponse(
+        status_code=400,
+        content={
+            "detail": str(exc),
+        },
+    )
+
 @app.get("/")
 def home():
     return {
@@ -197,5 +213,10 @@ app.include_router(
 
 app.include_router(
     internal_prediction_router,
+    prefix=settings.api_prefix,
+)
+
+app.include_router(
+    collection_schedule_router,
     prefix=settings.api_prefix,
 )

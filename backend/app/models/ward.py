@@ -11,7 +11,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.household import Household
-
+    from app.models.collection_schedule import CollectionSchedule
 
 class Ward(Base):
     __tablename__ = "wards"
@@ -37,5 +37,9 @@ class Ward(Base):
     )
 
     households: Mapped[list["Household"]] = relationship(
+        back_populates="ward",
+    )
+
+    collection_schedules: Mapped[list["CollectionSchedule"]] = relationship(
         back_populates="ward",
     )

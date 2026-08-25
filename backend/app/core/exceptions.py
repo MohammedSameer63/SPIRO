@@ -30,3 +30,7 @@ class WasteCategoryNotFoundError(Exception):
 
 class PredictionAlreadyExistsError(Exception):
     """Raised when a report already has a prediction."""
+
+
+class InvalidCollectionScheduleError(Exception):
+    """Raised when a collection schedule contains invalid data."""

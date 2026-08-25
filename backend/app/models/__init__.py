@@ -4,6 +4,7 @@ from .ward import Ward
 from .waste_category import WasteCategory
 from .waste_report import WasteReport
 from .prediction import Prediction
+from .collection_schedule import CollectionSchedule
 
 __all__ = [
     "User",
@@ -12,4 +13,5 @@ __all__ = [
     "WasteCategory"
     "WasteReport"
     "Prediction"
+    "CollectionSchedule"
 ]
