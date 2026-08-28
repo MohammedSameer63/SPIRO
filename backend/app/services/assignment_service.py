@@ -10,12 +10,13 @@ from app.core.exceptions import (
     ReportNotFoundError,
 )
 from app.enums.user_role import UserRole
+from app.enums.audit_event import AuditEvent
 from app.models.assignment import Assignment
 from app.models.waste_report import ReportStatus
 from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.waste_report_repository import WasteReportRepository
-
+from app.services.audit_log_service import AuditLogService
 
 class AssignmentService:
     """
@@ -28,11 +29,13 @@ class AssignmentService:
         assignment_repository: AssignmentRepository,
         user_repository: UserRepository,
         waste_report_repository: WasteReportRepository,
+        audit_log_service: AuditLogService,
     ):
         self.db = db
         self.assignment_repository = assignment_repository
         self.user_repository = user_repository
         self.waste_report_repository = waste_report_repository
+        self.audit_log_service = audit_log_service
 
     def create_assignment(
         self,
@@ -79,7 +82,29 @@ class AssignmentService:
             assigned_by=assigned_by,
         )
 
-        return self.assignment_repository.create(assignment)
+        try:
+            assignment = self.assignment_repository.create(
+                assignment
+            )
+
+            self.audit_log_service.create_log(
+                event_type=AuditEvent.REPORT_ASSIGNED,
+                entity_type="waste_report",
+                entity_id=report_id,
+                performed_by=assigned_by,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "worker_id": str(worker_id),
+                },
+            )
+
+            self.assignment_repository.commit()
+
+            return assignment
+
+        except Exception:
+            self.assignment_repository.rollback()
+            raise
 
     def get_assignment(
         self,
@@ -114,35 +139,42 @@ class AssignmentService:
     def complete_assignment(
         self,
         assignment_id: UUID,
+        performed_by: UUID,
     ) -> Assignment:
         assignment = self.get_assignment(assignment_id)
 
-        try:
-            # Mark assignment as completed.
-            if assignment.completed_at is None:
-                assignment.completed_at = datetime.utcnow()
+        if assignment.completed_at is None:
+            assignment.completed_at = datetime.utcnow()
 
-            # Find the associated waste report.
-            report = self.waste_report_repository.find_by_id(
-                assignment.report_id
+        report = self.waste_report_repository.find_by_id(
+            assignment.report_id
+        )
+
+        if report is None:
+            raise ReportNotFoundError(
+                f"Report with id '{assignment.report_id}' not found."
             )
 
-            if report is None:
-                raise ReportNotFoundError(
-                    f"Report with id '{assignment.report_id}' not found."
-                )
+        report.status = ReportStatus.COMPLETED
 
-            # Mark the waste report as completed.
-            report.status = ReportStatus.COMPLETED
+        try:
+            self.assignment_repository.update(assignment)
 
-            # Both repositories use the same SQLAlchemy session.
-            self.db.commit()
+            self.audit_log_service.create_log(
+                event_type=AuditEvent.REPORT_COMPLETED,
+                entity_type="waste_report",
+                entity_id=assignment.report_id,
+                performed_by=performed_by,
+                metadata={
+                    "assignment_id": str(assignment.id),
+                    "worker_id": str(assignment.worker_id),
+                },
+            )
 
-            # Refresh assignment so the latest DB state is returned.
-            self.db.refresh(assignment)
+            self.assignment_repository.commit()
 
             return assignment
 
         except Exception:
-            self.db.rollback()
+            self.assignment_repository.rollback()
             raise
