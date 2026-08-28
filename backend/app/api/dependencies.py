@@ -42,7 +42,6 @@ def get_current_user(
         )
 
     user_repository = UserRepository(db)
-
     user = user_repository.find_by_id(user_id)
 
     if user is None:

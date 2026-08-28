@@ -15,7 +15,7 @@ from app.enums.user_status import UserStatus
 if TYPE_CHECKING:
     from app.models.household import Household
     from app.models.waste_report import WasteReport
-
+    from app.models.assignment import Assignment
 
 class User(Base):
     __tablename__ = "users"
@@ -82,4 +82,14 @@ class User(Base):
 
     waste_reports: Mapped[list["WasteReport"]] = relationship(
         back_populates="user",
+    )
+
+    assignments: Mapped[list["Assignment"]] = relationship(
+        foreign_keys="Assignment.worker_id",
+        back_populates="worker",
+    )
+
+    created_assignments: Mapped[list["Assignment"]] = relationship(
+        foreign_keys="Assignment.assigned_by",
+        back_populates="assigned_by_user",
     )

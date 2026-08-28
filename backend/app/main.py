@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
 from app.core.exceptions import (
@@ -13,6 +13,9 @@ from app.core.exceptions import (
     WasteCategoryNotFoundError,
     PredictionAlreadyExistsError,
     InvalidCollectionScheduleError,
+    AssignmentAlreadyExistsError,
+    AssignmentNotFoundError,
+    InvalidWorkerError,
 )
 
 from app.api.routes.waste_category import (
@@ -27,6 +30,7 @@ from app.api.routes.internal_prediction import (
 from app.api.routes.collection_schedule import (
     router as collection_schedule_router,
 )
+from app.api.routes.assignment import router as assignment_router
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
 from app.api.routes.auth import router as auth_router
@@ -172,6 +176,38 @@ async def invalid_collection_schedule_handler(
         },
     )
 
+@app.exception_handler(AssignmentNotFoundError)
+async def assignment_not_found_handler(
+    request: Request,
+    exc: AssignmentNotFoundError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(AssignmentAlreadyExistsError)
+async def assignment_already_exists_handler(
+    request: Request,
+    exc: AssignmentAlreadyExistsError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(InvalidWorkerError)
+async def invalid_worker_handler(
+    request: Request,
+    exc: InvalidWorkerError,
+):
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)},
+    )
+
 @app.get("/")
 def home():
     return {
@@ -218,5 +254,10 @@ app.include_router(
 
 app.include_router(
     collection_schedule_router,
+    prefix=settings.api_prefix,
+)
+
+app.include_router(
+    assignment_router,
     prefix=settings.api_prefix,
 )
