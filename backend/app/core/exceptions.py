@@ -1,7 +1,6 @@
 class WardNotFoundError(Exception):
     """Raised when the requested ward does not exist."""
 
-
 class EmailAlreadyRegisteredError(Exception):
     """Raised when an email is already registered."""
 
@@ -23,14 +22,26 @@ class InvalidReportImageError(Exception):
 class ReportNotFoundError(Exception):
     """Raised when the requested waste report does not exist."""
 
-
 class WasteCategoryNotFoundError(Exception):
     """Raised when the requested waste category does not exist."""
-
 
 class PredictionAlreadyExistsError(Exception):
     """Raised when a report already has a prediction."""
 
-
 class InvalidCollectionScheduleError(Exception):
     """Raised when a collection schedule contains invalid data."""
+
+class AssignmentNotFoundError(Exception):
+    """Raised when an assignment cannot be found."""
+    
+    pass
+
+class AssignmentAlreadyExistsError(Exception):
+    """Raised when a report is already assigned."""
+    
+    pass
+
+class InvalidWorkerError(Exception):
+    """Raised when a user cannot be assigned as a worker."""
+
+    pass

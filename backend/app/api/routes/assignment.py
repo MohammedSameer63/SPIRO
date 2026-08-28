@@ -1,0 +1,84 @@
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
+
+from app.api.dependencies import get_current_user, require_role
+from app.core.database import get_db
+from app.models.user import User
+from app.schemas.assignment import (
+    AssignmentCreateRequest,
+    AssignmentResponse,
+)
+from app.repositories.assignment_repository import AssignmentRepository
+from app.repositories.user_repository import UserRepository
+from app.repositories.waste_report_repository import WasteReportRepository
+from app.services.assignment_service import AssignmentService
+
+
+router = APIRouter(
+    prefix="/assignments",
+    tags=["Assignments"],
+)
+
+
+def get_assignment_service(
+    db: Session = Depends(get_db),
+) -> AssignmentService:
+    return AssignmentService(
+        db=db,
+        assignment_repository=AssignmentRepository(db),
+        user_repository=UserRepository(db),
+        waste_report_repository=WasteReportRepository(db),
+    )
+
+
+@router.post(
+    "",
+    response_model=AssignmentResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_assignment(
+    request: AssignmentCreateRequest,
+    current_user: User = Depends(require_role("ADMIN")),
+    service: AssignmentService = Depends(get_assignment_service),
+):
+    return service.create_assignment(
+        report_id=request.report_id,
+        worker_id=request.worker_id,
+        assigned_by=current_user.id,
+    )
+
+
+@router.get(
+    "/{assignment_id}",
+    response_model=AssignmentResponse,
+)
+async def get_assignment(
+    assignment_id: UUID,
+    service: AssignmentService = Depends(get_assignment_service),
+):
+    return service.get_assignment(assignment_id)
+
+
+@router.get(
+    "/report/{report_id}",
+    response_model=AssignmentResponse,
+)
+async def get_assignment_by_report(
+    report_id: UUID,
+    service: AssignmentService = Depends(get_assignment_service),
+):
+    return service.get_assignment_by_report(report_id)
+
+
+@router.patch(
+    "/{assignment_id}/complete",
+    response_model=AssignmentResponse,
+)
+async def complete_assignment(
+    assignment_id: UUID,
+    current_user: User = Depends(require_role("WORKER")),
+    service: AssignmentService = Depends(get_assignment_service),
+):
+    return service.complete_assignment(assignment_id)
