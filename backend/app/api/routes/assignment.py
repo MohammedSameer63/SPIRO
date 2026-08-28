@@ -13,6 +13,8 @@ from app.schemas.assignment import (
 from app.repositories.assignment_repository import AssignmentRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.waste_report_repository import WasteReportRepository
+from app.repositories.audit_log_repository import AuditLogRepository
+from app.services.audit_log_service import AuditLogService
 from app.services.assignment_service import AssignmentService
 
 
@@ -25,11 +27,21 @@ router = APIRouter(
 def get_assignment_service(
     db: Session = Depends(get_db),
 ) -> AssignmentService:
+    assignment_repository = AssignmentRepository(db)
+    user_repository = UserRepository(db)
+    waste_report_repository = WasteReportRepository(db)
+
+    audit_log_repository = AuditLogRepository(db)
+    audit_log_service = AuditLogService(
+        audit_log_repository
+    )
+
     return AssignmentService(
         db=db,
-        assignment_repository=AssignmentRepository(db),
-        user_repository=UserRepository(db),
-        waste_report_repository=WasteReportRepository(db),
+        assignment_repository=assignment_repository,
+        user_repository=user_repository,
+        waste_report_repository=waste_report_repository,
+        audit_log_service=audit_log_service,
     )
 
 
@@ -81,4 +93,7 @@ async def complete_assignment(
     current_user: User = Depends(require_role("WORKER")),
     service: AssignmentService = Depends(get_assignment_service),
 ):
-    return service.complete_assignment(assignment_id)
+    return service.complete_assignment(
+        assignment_id=assignment_id,
+        performed_by=current_user.id,
+    )

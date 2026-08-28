@@ -12,10 +12,12 @@ from app.models import User
 from app.repositories.waste_report_repository import (
     WasteReportRepository,
 )
+from app.repositories.audit_log_repository import AuditLogRepository
 from app.schemas.waste_report import (
     WasteReportCreateRequest,
     WasteReportResponse,
 )
+from app.services.audit_log_service import AuditLogService
 from app.services.file_storage_service import FileStorageService
 from app.services.waste_report_service import WasteReportService
 
@@ -37,10 +39,17 @@ def get_waste_report_service(
         max_image_size_mb=settings.max_image_size_mb,
     )
 
+    audit_log_repository = AuditLogRepository(db)
+
+    audit_log_service = AuditLogService(
+        audit_log_repository
+    )
+
     return WasteReportService(
         db=db,
         waste_report_repository=waste_report_repository,
         file_storage_service=file_storage_service,
+        audit_log_service=audit_log_service,
     )
 
 
