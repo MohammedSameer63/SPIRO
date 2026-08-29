@@ -7,6 +7,7 @@ from .prediction import Prediction
 from .collection_schedule import CollectionSchedule
 from .assignment import Assignment
 from .audit_log import AuditLog
+from .worker_ward import WorkerWard
 
 __all__ = [
     "User",
@@ -18,4 +19,5 @@ __all__ = [
     "CollectionSchedule"
     "Assignment"
     "AuditLog"
+    "WorkerWard"
 ]
