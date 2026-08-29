@@ -16,6 +16,9 @@ from app.core.exceptions import (
     AssignmentAlreadyExistsError,
     AssignmentNotFoundError,
     InvalidWorkerError,
+    WorkerNotFoundError,
+    WorkerWardAlreadyExistsError,
+    WorkerWardAssignmentNotFoundError,
 )
 
 from app.api.routes.waste_category import (
@@ -29,6 +32,9 @@ from app.api.routes.internal_prediction import (
 )
 from app.api.routes.collection_schedule import (
     router as collection_schedule_router,
+)
+from app.api.routes.worker_ward import (
+    router as worker_ward_router,
 )
 from app.api.routes.assignment import router as assignment_router
 from app.api.routes.household import router as household_router
@@ -208,6 +214,39 @@ async def invalid_worker_handler(
         content={"detail": str(exc)},
     )
 
+@app.exception_handler(WardNotFoundError)
+async def ward_not_found_handler(
+    request,
+    exc,
+):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)},
+    )
+
+@app.exception_handler(WorkerWardAlreadyExistsError)
+async def worker_ward_exists_handler(
+    request,
+    exc,
+):
+    return JSONResponse(
+        status_code=409,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(
+    WorkerWardAssignmentNotFoundError
+)
+async def worker_ward_assignment_not_found_handler(
+    request,
+    exc,
+):
+    return JSONResponse(
+        status_code=404,
+        content={"detail": str(exc)},
+    )
+
 @app.get("/")
 def home():
     return {
@@ -261,3 +300,5 @@ app.include_router(
     assignment_router,
     prefix=settings.api_prefix,
 )
+
+app.include_router(worker_ward_router)

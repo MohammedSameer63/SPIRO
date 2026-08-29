@@ -45,3 +45,23 @@ class InvalidWorkerError(Exception):
     """Raised when a user cannot be assigned as a worker."""
 
     pass
+
+class WorkerWardAssignmentNotFoundError(Exception):
+    """
+    Raised when a worker-ward assignment does not exist.
+    """
+    pass
+
+
+class WorkerWardAlreadyExistsError(Exception):
+    """
+    Raised when a worker is already assigned to a ward.
+    """
+    pass
+
+
+class WorkerNotFoundError(Exception):
+    """
+    Raised when the specified worker does not exist.
+    """
+    pass
