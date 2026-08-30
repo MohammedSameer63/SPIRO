@@ -18,7 +18,10 @@ class RegisterRequest(BaseModel):
         max_length=255,
     )
 
-    address: str | None = None
+    address: str = Field(
+        min_length=5,
+        max_length=1000,
+    )
 
     name: str = Field(
         min_length=2,

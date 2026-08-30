@@ -38,12 +38,12 @@ class Household(Base):
 
     street_name: Mapped[str | None] = mapped_column(
         String(100),
-        nullable=True,
+        nullable=False,
     )
 
     address: Mapped[str] = mapped_column(
         Text,
-        nullable=True,
+        nullable=False,
     )
 
     created_at: Mapped[datetime] = mapped_column(
