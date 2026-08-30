@@ -9,7 +9,7 @@ from app.repositories.waste_report_repository import (
 from app.schemas.waste_report import WasteReportCreateRequest
 from app.services.audit_log_service import AuditLogService
 from app.services.file_storage_service import FileStorageService
-
+from app.core.exceptions import ReportNotFoundError
 
 class WasteReportService:
     """
@@ -76,3 +76,37 @@ class WasteReportService:
         except Exception:
             self.db.rollback()
             raise
+
+    def get_my_reports(
+        self,
+        current_user: User,
+    ) -> list[WasteReport]:
+        """
+        Retrieve all waste reports created by the authenticated user.
+        """
+
+        return self.waste_report_repository.find_by_user(
+            current_user.id
+        )
+
+    def get_report(
+        self,
+        report_id,
+        current_user: User,
+    ) -> WasteReport:
+        """
+        Retrieve a specific waste report belonging
+        to the authenticated user.
+        """
+
+        report = self.waste_report_repository.find_by_id(
+            report_id
+        )
+
+        if report is None:
+            raise ReportNotFoundError("Waste report not found.")
+
+        if report.user_id != current_user.id:
+            raise ReportNotFoundError("Waste report not found.")
+
+        return report

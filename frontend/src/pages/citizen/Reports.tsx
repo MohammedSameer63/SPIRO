@@ -19,11 +19,8 @@ function Reports() {
 
       const response = await getMyReports();
 
-      if (response.success) {
-        setReports(response.data);
-      } else {
-        setError("Failed to load reports.");
-      }
+      setReports(response);
+      
     } catch (err: any) {
       console.error("Failed to load reports:", err);
 

@@ -1,3 +1,4 @@
+from uuid import UUID
 from decimal import Decimal
 from pathlib import Path
 from typing import Annotated
@@ -85,5 +86,35 @@ async def create_report(
     return await service.create_report(
         request=request,
         image=image,
+        current_user=current_user,
+    )
+
+@router.get(
+    "/my",
+    response_model=list[WasteReportResponse],
+)
+def get_my_reports(
+    current_user: User = Depends(get_current_user),
+    service: WasteReportService = Depends(
+        get_waste_report_service
+    ),
+):
+    return service.get_my_reports(
+        current_user=current_user
+    )
+
+@router.get(
+    "/{report_id}",
+    response_model=WasteReportResponse,
+)
+def get_report(
+    report_id: UUID,
+    current_user: User = Depends(get_current_user),
+    service: WasteReportService = Depends(
+        get_waste_report_service
+    ),
+):
+    return service.get_report(
+        report_id=report_id,
         current_user=current_user,
     )

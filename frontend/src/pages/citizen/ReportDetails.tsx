@@ -32,7 +32,8 @@ function ReportDetails() {
 
       const response = await getReport(reportId);
 
-      setReport(response.data);
+      setReport(response);
+      
     } catch (error: any) {
       setError(
         error?.message ||
@@ -56,14 +57,15 @@ function ReportDetails() {
     );
   }
 
-  function getImageUrl(
-    imageUrl: string
-  ) {
-    const filename = imageUrl
-      .replace(/\\/g, "/")
-      .replace(/^uploads\//, "");
+  function getImageUrl(imageUrl: string) {
+    if (!imageUrl) {
+      return "";
+    }
 
-    return `${API_SERVER_URL}/uploads/${filename}`;
+    if (imageUrl.startsWith("http://") || imageUrl.startsWith("https://")) {
+      return imageUrl;
+    }
+    return `${API_SERVER_URL}${imageUrl.startsWith("/") ? "" : "/"}${imageUrl}`;
   }
 
   function getStatusStyle(
