@@ -1,0 +1,26 @@
+# =============================================================================
+# SPIRO — YOLOv11-medium experiment
+# =============================================================================
+_base_: "./yolov11_training.yaml"
+
+experiment:
+  name: "spiro_yolo11m"
+  tags: ["yolov11m", "medium"]
+
+model:
+  weights: "yolo11m.pt"
+
+training:
+  epochs: 300
+  batch_size: 16
+  patience: 50
+  amp: true
+
+optimizer:
+  lr0: 0.01
+  weight_decay: 0.0005
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.15
+  copy_paste: 0.2

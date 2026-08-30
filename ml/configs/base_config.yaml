@@ -1,0 +1,207 @@
+# =============================================================================
+# SPIRO ML — Base Configuration
+# =============================================================================
+
+project:
+  name: "SPIRO-ML"
+  version: "1.0.0"
+  description: "AI/ML subsystem for SPIRO"
+  seed: 42
+
+# -----------------------------------------------------------------------------
+# Paths
+# -----------------------------------------------------------------------------
+paths:
+  data_root: "datasets"
+  raw_data: "datasets/raw"
+  processed_data: "datasets/processed"
+  splits_dir: "datasets/splits"
+  augmented_data: "datasets/augmented"
+  models_dir: "models"
+  checkpoints_dir: "models/checkpoints"
+  exports_dir: "models/exports"
+  registry_dir: "models/registry"
+  logs_dir: "logs"
+  tensorboard_dir: "logs/tensorboard"
+  mlflow_dir: "logs/mlflow"
+  reports_dir: "reports"
+
+# -----------------------------------------------------------------------------
+# Dataset
+# -----------------------------------------------------------------------------
+dataset:
+  name: "spiro_dataset"
+  format: "yolo"           # yolo | coco | voc | custom
+  num_classes: 5
+  class_names:
+    - "object_a"
+    - "object_b"
+    - "object_c"
+    - "object_d"
+    - "object_e"
+  image_size: [640, 640]   # [width, height]
+  channels: 3
+  split_ratios:
+    train: 0.70
+    val: 0.15
+    test: 0.15
+  augmentation_factor: 3   # how many augmented copies per original
+  cache_images: true
+  workers: 4
+
+# -----------------------------------------------------------------------------
+# Model
+# -----------------------------------------------------------------------------
+model:
+  architecture: "yolov11"  # yolov11 | efficientnetv2 | ensemble
+  variant: "yolo11n.pt"    # nano | small | medium | large | xlarge
+  pretrained: true
+  pretrained_weights: "yolo11n.pt"
+  input_size: [640, 640]
+  num_classes: 5
+  task: "detect"           # detect | classify | segment
+
+# EfficientNetV2 settings (used when architecture == efficientnetv2)
+efficientnetv2:
+  variant: "tf_efficientnetv2_s"
+  pretrained: true
+  drop_rate: 0.2
+  drop_path_rate: 0.2
+  num_classes: 5
+  global_pool: "avg"
+
+# -----------------------------------------------------------------------------
+# Training
+# -----------------------------------------------------------------------------
+training:
+  epochs: 100
+  batch_size: 16
+  learning_rate: 0.01
+  lr_scheduler: "cosine"   # cosine | step | plateau
+  warmup_epochs: 3
+  warmup_momentum: 0.8
+  weight_decay: 0.0005
+  momentum: 0.937
+  optimizer: "SGD"          # SGD | Adam | AdamW
+  amp: true                 # Automatic Mixed Precision
+  gradient_clip: 10.0
+  accumulate_grad_batches: 1
+  patience: 50              # Early stopping patience
+  save_period: 10           # Save checkpoint every N epochs
+  val_period: 1             # Validate every N epochs
+  device: "auto"            # auto | cpu | cuda | mps
+  workers: 4
+  pin_memory: true
+  resume: false
+  resume_checkpoint: null
+
+# Loss weights (YOLO)
+loss:
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+
+# -----------------------------------------------------------------------------
+# Augmentation
+# -----------------------------------------------------------------------------
+augmentation:
+  # Geometric
+  horizontal_flip: 0.5
+  vertical_flip: 0.0
+  rotate_limit: 15
+  rotate_prob: 0.3
+  scale_limit: 0.2
+  scale_prob: 0.3
+  shift_limit: 0.1
+  shift_prob: 0.3
+  perspective_distortion: 0.0005
+  perspective_prob: 0.1
+
+  # Color
+  brightness_limit: 0.2
+  contrast_limit: 0.2
+  color_prob: 0.4
+  hue_shift: 20
+  sat_shift: 30
+  val_shift: 20
+  hsv_prob: 0.4
+
+  # Noise / Blur
+  blur_prob: 0.1
+  gaussian_noise_prob: 0.1
+  cutout_prob: 0.3
+  cutout_num_holes: 8
+  cutout_max_h: 40
+  cutout_max_w: 40
+
+  # Mosaic (YOLO)
+  mosaic: 1.0
+  mixup: 0.15
+  copy_paste: 0.3
+
+# -----------------------------------------------------------------------------
+# Evaluation
+# -----------------------------------------------------------------------------
+evaluation:
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  max_detections: 300
+  metrics:
+    - "mAP50"
+    - "mAP50-95"
+    - "precision"
+    - "recall"
+    - "f1"
+  save_plots: true
+  save_confusion_matrix: true
+  save_pr_curve: true
+
+# -----------------------------------------------------------------------------
+# ONNX Export
+# -----------------------------------------------------------------------------
+export:
+  format: "onnx"
+  opset_version: 17
+  dynamic_axes: true
+  simplify: true
+  half_precision: false
+  input_names: ["images"]
+  output_names: ["output0"]
+  verify_export: true
+
+# -----------------------------------------------------------------------------
+# Inference
+# -----------------------------------------------------------------------------
+inference:
+  conf_threshold: 0.4
+  iou_threshold: 0.45
+  max_detections: 300
+  device: "cpu"             # cpu | cuda
+  providers:
+    - "CUDAExecutionProvider"
+    - "CPUExecutionProvider"
+  batch_size: 1
+  warmup_runs: 3
+
+# -----------------------------------------------------------------------------
+# Continuous Learning
+# -----------------------------------------------------------------------------
+continuous_learning:
+  enabled: true
+  trigger_threshold: 0.05   # retrain if mAP drops by this much
+  min_new_samples: 100
+  retrain_schedule: "weekly"
+  drift_detection: true
+  drift_window: 500         # samples to watch for drift
+  registry_max_versions: 5
+
+# -----------------------------------------------------------------------------
+# Logging
+# -----------------------------------------------------------------------------
+logging:
+  level: "INFO"             # DEBUG | INFO | WARNING | ERROR
+  tensorboard: true
+  mlflow: true
+  console: true
+  file: true
+  log_images_every_n_epochs: 5

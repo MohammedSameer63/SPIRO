@@ -1,0 +1,105 @@
+name: SPIRO ML Deployment
+
+on:
+  workflow_dispatch:
+    inputs:
+      model_id:
+        description: "Model ID (e.g. yolov11s)"
+        required: true
+      version:
+        description: "Model version (e.g. v2.0.0)"
+        required: true
+      strategy:
+        description: "Deployment strategy"
+        type: choice
+        options: [immediate, blue_green, canary]
+        default: blue_green
+      environment:
+        description: "Target environment"
+        type: choice
+        options: [staging, production]
+        default: staging
+      auto_promote:
+        description: "Auto-promote if validation passes"
+        type: boolean
+        default: false
+
+env:
+  PYTHON_VERSION: "3.11"
+  PYTHONPATH: src
+
+jobs:
+  validate-deployment:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    outputs:
+      validation_passed: ${{ steps.validate.outputs.passed }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install
+        run: pip install onnx onnxruntime numpy scipy pyyaml omegaconf && pip install -e "."
+      - name: Validate candidate model
+        id: validate
+        run: |
+          python -c "
+          import sys
+          sys.path.insert(0, 'src')
+          from lib.ml.mlops.registry.model_registry import ModelRegistry
+          from lib.ml.mlops.validation.model_validator import ModelValidator
+          registry = ModelRegistry()
+          meta = registry.get('${{ github.event.inputs.model_id }}',
+                               '${{ github.event.inputs.version }}')
+          if meta is None:
+              print('::error::Model not found in registry')
+              sys.exit(1)
+          if not meta.onnx_path:
+              print('::warning::No ONNX path in metadata — skipping ORT validation')
+              print('passed=true')
+              sys.exit(0)
+          from pathlib import Path
+          if not Path(meta.onnx_path).exists():
+              print(f'::warning::ONNX not found: {meta.onnx_path}')
+              print('passed=false')
+              sys.exit(0)
+          validator = ModelValidator(max_latency_ms=60000)
+          report = validator.validate(meta.onnx_path, meta.model_id, meta.version,
+                                      input_size=meta.input_size, task=meta.task)
+          print(f'Validation: {report.summary}')
+          result = 'true' if report.overall_passed else 'false'
+          print(f'passed={result}')
+          " >> \$GITHUB_OUTPUT
+          echo "Validation complete"
+        continue-on-error: true
+
+  deploy:
+    name: Deploy Model
+    runs-on: ubuntu-latest
+    needs: validate-deployment
+    environment: ${{ github.event.inputs.environment }}
+    if: needs.validate-deployment.outputs.validation_passed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - name: Install
+        run: pip install onnxruntime pyyaml omegaconf numpy scipy && pip install -e "."
+      - name: Execute deployment
+        run: |
+          python training/mlops/model_promoter.py \
+            --model-id "${{ github.event.inputs.model_id }}" \
+            --version "${{ github.event.inputs.version }}" \
+            --strategy "${{ github.event.inputs.strategy }}" \
+            ${{ github.event.inputs.auto_promote == 'true' && '--auto-deploy' || '' }} \
+            --deployed-by "github-actions"
+      - name: Export deployment history
+        run: python training/mlops/model_deployer.py history
+      - name: Upload reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-reports-${{ github.run_id }}
+          path: mlops/reports/

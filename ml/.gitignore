@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.tox/
+.venv/
+venv/
+env/
+.env
+
+# ML artefacts
+datasets/raw/
+datasets/processed/
+datasets/augmented/
+datasets/splits/
+datasets/continuous_buffer/
+models/checkpoints/
+models/exports/
+models/registry/
+logs/
+reports/
+results/
+runs/
+# training/ is source code - keep it in Git
+
+# ONNX
+*.onnx
+
+# PyTorch
+*.pt
+*.pth
+
+# Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+.coverage
+htmlcov/
+
+# MLflow
+mlruns/

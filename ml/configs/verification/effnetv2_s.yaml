@@ -1,0 +1,9 @@
+# EfficientNetV2-S (default, 300px — best balance)
+_base_: "./effnetv2_verify.yaml"
+experiment:
+  name: "spiro_effnetv2_s"
+model:
+  variant: "efficientnetv2_s"
+  input_size: 300
+training:
+  batch_size: 32

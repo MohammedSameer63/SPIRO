@@ -1,0 +1,77 @@
+# =============================================================================
+# OpenLitterMap → SPIRO Mapping
+# Source: OpenLitterMap
+# License: CC BY 4.0
+# URL: https://openlittermap.com / https://github.com/OpenLitterMap
+# Citation: Lynch, S. (2018). OpenLitterMap.com – Open Data on Plastic
+#           Pollution with Blockchain Rewards (Littercoin).
+#           Open Geospatial Data, Software and Standards 3(6).
+# Classes: ~30 litter categories (crowd-sourced, hierarchical)
+# Annotation: Bounding boxes in custom JSON
+# =============================================================================
+
+dataset:
+  name: OpenLitterMap
+  version: "2023"
+  license: "CC BY 4.0"
+  homepage: "https://openlittermap.com"
+  paper: "https://doi.org/10.1186/s40965-018-0050-y"
+  annotation_format: "olm_json"
+  checksum_file: "olm_checksums.json"
+  notes: >
+    OpenLitterMap uses a hierarchical taxonomy. The mapping below uses the
+    leaf-level category names as they appear in the exported JSON.
+    OLM categories marked with (*) are crowd-sourced and may have high label noise;
+    the quality_checker will flag low-confidence annotations.
+
+mappings:
+  # Smoking
+  "cigarette_butt":          {spiro_ids: [53],   notes: ""}
+  "lighter":                 {spiro_ids: [55],   notes: ""}
+  "cigarette_packet":        {spiro_ids: [54],   notes: ""}
+
+  # Alcohol
+  "alcohol_bottle":          {spiro_ids: [22],   notes: "glass bottle"}
+  "alcohol_can":             {spiro_ids: [27],   notes: "metal can beverage"}
+  "bottle_cap":              {spiro_ids: [29],   notes: "metal bottle cap"}
+  "broken_glass":            {spiro_ids: [24],   notes: "glass fragment"}
+
+  # Coffee / food
+  "coffee_cup":              {spiro_ids: [5],    notes: "plastic cup or paper cup; default plastic"}
+  "coffee_cup_lid":          {spiro_ids: [6],    notes: "plastic lid"}
+  "cup_paper":               {spiro_ids: [39],   notes: "paper cup"}
+  "food_wrapper":            {spiro_ids: [12],   notes: "plastic packaging"}
+  "fast_food_bag":           {spiro_ids: [38],   notes: "paper bag"}
+  "straw":                   {spiro_ids: [4],    notes: "plastic straw"}
+
+  # Plastic
+  "plastic_bottle":          {spiro_ids: [0],    notes: ""}
+  "plastic_bag":             {spiro_ids: [2],    notes: ""}
+  "plastic_film":            {spiro_ids: [3],    notes: ""}
+  "plastic_utensils":        {spiro_ids: [7],    notes: "fork primary"}
+  "six_pack_rings":          {spiro_ids: [12],   notes: "plastic packaging"}
+  "foam":                    {spiro_ids: [20],   notes: "polystyrene container"}
+
+  # Metal
+  "can":                     {spiro_ids: [27],   notes: "metal can beverage"}
+  "aerosol_can":             {spiro_ids: [34],   notes: ""}
+  "aluminium_foil":          {spiro_ids: [31],   notes: "metal foil"}
+
+  # Paper / cardboard
+  "cardboard":               {spiro_ids: [36],   notes: ""}
+  "paper":                   {spiro_ids: [40],   notes: "newspaper default"}
+  "newspaper":               {spiro_ids: [40],   notes: ""}
+
+  # Other
+  "dog_poo_bag":             {spiro_ids: [2],    notes: "plastic bag"}
+  "sanitary":                {spiro_ids: [69],   notes: "sanitary pad"}
+  "mask":                    {spiro_ids: [59],   notes: "disposable mask"}
+  "glove":                   {spiro_ids: [60],   notes: "disposable glove"}
+  "battery":                 {spiro_ids: [61],   notes: ""}
+  "shoe":                    {spiro_ids: [57],   notes: ""}
+  "fishing_gear":            {spiro_ids: [95],   notes: "fishing net fragment"}
+  "rope":                    {spiro_ids: [15],   notes: "plastic rope"}
+  "unlabelled":              {spiro_ids: [106],  notes: "unknown litter"}
+  "other":                   {spiro_ids: [106],  notes: "unknown litter"}
+
+excluded: ["unlabelled", "other"]

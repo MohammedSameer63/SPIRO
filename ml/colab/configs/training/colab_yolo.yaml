@@ -1,0 +1,54 @@
+# SPIRO — Colab YOLOv11 training config (free T4 optimised)
+# Used by train_yolo.py
+
+model:
+  variant: nano          # nano = 2.6M params, fits free T4 15GB
+  weights: yolo11n.pt    # pretrained ImageNet weights (auto-downloaded)
+  num_classes: 109
+  input_size: 640
+
+training:
+  epochs: 100
+  batch_size: 16          # safe for T4 15GB at 640px
+  device: "0"             # GPU 0
+  workers: 2              # Colab has limited CPU
+  amp: true               # automatic mixed precision (saves VRAM)
+  patience: 30            # early stopping
+  save_period: 10         # checkpoint every N epochs
+
+optimizer:
+  name: SGD
+  lr0: 0.01
+  lrf: 0.01               # final lr = lr0 * lrf
+  momentum: 0.937
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+
+augmentation:
+  mosaic: 0.8
+  mixup: 0.0
+  copy_paste: 0.0
+  flipud: 0.0
+  fliplr: 0.5
+  degrees: 10.0
+  translate: 0.1
+  scale: 0.4
+  shear: 0.0
+  perspective: 0.0
+  hsv_h: 0.015
+  hsv_s: 0.5
+  hsv_v: 0.3
+
+loss:
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+
+export:
+  format: onnx
+  opset: 17
+  simplify: true
+  dynamic: true
+  half: false

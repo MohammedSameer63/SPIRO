@@ -1,0 +1,41 @@
+# =============================================================================
+# TrashNet → SPIRO Mapping
+# Source: TrashNet (Stanford)
+# License: CC BY 4.0
+# URL: https://github.com/garythung/trashnet
+# Citation: Thung, G. & Yang, M. (2016). Classification of Trash for
+#           Recyclability Status. CS229 Project Report, Stanford.
+# Classes: 6 (cardboard, glass, metal, paper, plastic, trash)
+# Task: Image classification (no bounding boxes) — mapped to SPIRO groups
+# =============================================================================
+
+dataset:
+  name: TrashNet
+  version: "1.0"
+  license: "CC BY 4.0"
+  homepage: "https://github.com/garythung/trashnet"
+  annotation_format: "image_folder"   # classification, no bboxes
+  checksum_file: "trashnet_checksums.json"
+  gdrive_id: "0B3P9oO5A3RZVd3liYlJOS0lLYm8"  # original hosted on GDrive
+  has_bboxes: false
+  notes: >
+    TrashNet has no bounding box annotations. Images are whole-image
+    classification. When merging with detection datasets, whole-image
+    pseudo-annotations are generated (full-image bbox + class).
+    Classification labels are mapped to primary SPIRO class ID.
+
+mappings:
+  # TrashNet class → primary SPIRO ID (best representative for that category)
+  "cardboard":  {spiro_ids: [36],   notes: "cardboard box as primary representative"}
+  "glass":      {spiro_ids: [22],   notes: "glass bottle as primary representative"}
+  "metal":      {spiro_ids: [27],   notes: "metal can beverage as primary representative"}
+  "paper":      {spiro_ids: [40],   notes: "newspaper as primary representative"}
+  "plastic":    {spiro_ids: [0],    notes: "plastic bottle as primary representative"}
+  "trash":      {spiro_ids: [106],  notes: "unknown litter / misc"}
+
+# Classification→detection conversion config
+pseudo_bbox:
+  # When converting a classification image to a detection sample,
+  # the bbox covers a centre crop (avoids background border artifacts)
+  centre_crop_fraction: 0.85
+  label_confidence: "full_image"
