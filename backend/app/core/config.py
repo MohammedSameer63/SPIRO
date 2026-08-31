@@ -20,8 +20,9 @@ class Settings(BaseSettings):
     upload_dir: str = "uploads"
     max_image_size_mb: int = 10
 
+
     # ML Models
-    yolo_model_path: str = "models/yolo.pt"
+    yolo_model_path: str = "models/spiro_yolo11n.pt"
     efficientnet_model_path: str = "models/efficientnetv2.pth"
 
     # Internal Services
