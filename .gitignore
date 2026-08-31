@@ -1,22 +1,13 @@
-# Python
+.venv/
 __pycache__/
 *.pyc
 
-# Virtual environments
-backend/.venv/
+datasets/
+logs/
+reports/
+runs/
 
-# Environment variables
+*.pt
+*.pth
+
 .env
-backend/.env
-
-# VS Code
-.vscode/
-
-# Node
-node_modules/
-
-# OS files
-.DS_Store
-
-# local storage
-uploads/
