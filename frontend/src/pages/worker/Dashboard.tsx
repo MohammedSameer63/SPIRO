@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import {
   getWorkerStats,
   getWorkerWards,
+  getWorkerSchedules,
 } from "../../api/reports";
 
-import type { WorkerWard } from "../../api/reports";
+import type {
+  WorkerSchedule,
+  WorkerWard,
+} from "../../api/reports";
 
 function Dashboard() {
   const [stats, setStats] = useState({
@@ -17,6 +21,9 @@ function Dashboard() {
 
   const [wards, setWards] =
     useState<WorkerWard[]>([]);
+
+  const [schedules, setSchedules] =
+    useState<WorkerSchedule[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -36,9 +43,11 @@ function Dashboard() {
       const [
         statsResponse,
         wardsResponse,
+        schedulesResponse,
       ] = await Promise.all([
         getWorkerStats(),
         getWorkerWards(),
+        getWorkerSchedules(),
       ]);
 
       if (statsResponse.success) {
@@ -47,6 +56,10 @@ function Dashboard() {
 
       if (wardsResponse.success) {
         setWards(wardsResponse.data);
+      }
+
+      if (schedulesResponse.success) {
+        setSchedules(schedulesResponse.data);
       }
     } catch (err: any) {
       console.error(err);
@@ -142,6 +155,28 @@ function Dashboard() {
         )}
       </div>
 
+      <div style={styles.schedules}>
+        <h2>Collection Schedules</h2>
+
+        {schedules.length === 0 ? (
+          <p style={styles.noWards}>
+            No collection schedules are available for your assigned wards.
+          </p>
+        ) : (
+          <div style={styles.scheduleList}>
+            {schedules.map((schedule) => (
+              <div key={schedule.id} style={styles.schedule}>
+                <strong>{schedule.ward}</strong>
+                <span>{schedule.category}</span>
+                <span>
+                  {schedule.day}: {schedule.startTime} – {schedule.endTime}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
       {/* Statistics */}
 
       <div style={styles.grid}>
@@ -172,6 +207,27 @@ const styles = {
 
   wards: {
     marginBottom: "30px",
+  },
+
+  schedules: {
+    marginBottom: "30px",
+  },
+
+  scheduleList: {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: "10px",
+  },
+
+  schedule: {
+    display: "flex",
+    flexWrap: "wrap" as const,
+    gap: "12px",
+    alignItems: "center",
+    padding: "12px 14px",
+    background: "white",
+    borderRadius: "8px",
+    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
   },
 
   ward: {

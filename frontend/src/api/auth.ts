@@ -68,12 +68,3 @@ export async function getCurrentUser(): Promise<User> {
     }
   );
 }
-
-export async function logout() {
-  return apiRequest(
-    "/auth/logout",
-    {
-      method: "POST",
-    }
-  );
-}

@@ -48,13 +48,19 @@ class WasteReportService:
             )
         )
 
+        address = request.address or (
+            self._build_household_address(
+                current_user
+            )
+        )
+
         report = WasteReport(
             user_id=current_user.id,
             description=request.description,
             image_url=image_url,
             latitude=request.latitude,
             longitude=request.longitude,
-            address=request.address,
+            address=address,
         )
 
         try:
@@ -76,6 +82,32 @@ class WasteReportService:
         except Exception:
             self.db.rollback()
             raise
+
+    def _build_household_address(
+        self,
+        current_user: User,
+    ) -> str | None:
+        """
+        Build the full address from the citizen's
+        linked household when available.
+        """
+
+        household = current_user.household
+
+        if household is None:
+            return None
+
+        address_parts = [
+            household.house_number,
+            household.street_name,
+            household.address,
+        ]
+
+        return ", ".join(
+            part
+            for part in address_parts
+            if part
+        )
 
     def get_my_reports(
         self,

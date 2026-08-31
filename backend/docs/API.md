@@ -98,6 +98,87 @@ This document is organized feature-by-feature.
 
 ---
 
+# Frontend Integration Endpoints
+
+These additive endpoints support the current web client. They do not replace
+the existing module endpoints documented elsewhere in this contract.
+
+All endpoints below require a JWT bearer token and return the standard
+`{ "success": true, "data": ... }` envelope.
+
+## Workflow rules
+
+- An administrator assigns workers to wards; a worker may have at most five
+  ward assignments.
+- A collection schedule belongs to a ward and waste category. It is not an
+  assignment to an individual worker.
+- Workers see pending reports from their assigned wards and accept those
+  reports themselves.
+- Once accepted, only the accepting worker may advance a report from
+  `ACCEPTED` to `IN_PROGRESS` and then `COMPLETED`.
+
+## Admin
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/admin/dashboard` | City totals plus ward and worker summaries. |
+| GET | `/admin/workers` | Workers and their assigned wards. |
+| GET | `/admin/wards` | Wards for worker assignment and schedules. |
+| POST | `/admin/workers/{worker_id}/wards/{ward_id}` | Assign a worker to a ward. |
+| DELETE | `/admin/workers/{worker_id}/wards/{ward_id}` | Remove a worker from a ward. |
+| GET | `/admin/schedules` | List all ward collection schedules. |
+| POST | `/admin/schedules` | Create a ward/category collection schedule. |
+| DELETE | `/admin/schedules/{schedule_id}` | Delete a collection schedule. |
+| GET | `/admin/waste-categories` | List waste categories for schedules. |
+
+`POST /admin/schedules` accepts:
+
+```json
+{
+  "ward_id": "UUID",
+  "waste_category_id": "UUID",
+  "day_of_week": "MONDAY",
+  "start_time": "09:00:00",
+  "end_time": "12:00:00"
+}
+```
+
+## Worker
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/worker/dashboard` | Queue and assignment counts for the authenticated worker. |
+| GET | `/worker/wards` | The worker's assigned wards. |
+| GET | `/worker/reports/queue` | Pending reports whose reporting household ward is explicitly assigned to the authenticated worker. |
+| GET | `/worker/reports/active` | Reports accepted by the worker that remain active. |
+| PATCH | `/worker/reports/{report_id}/status` | Accept or advance a report. |
+| GET | `/worker/schedules` | Schedules for the worker's assigned wards. |
+
+`PATCH /worker/reports/{report_id}/status` accepts exactly one of these valid
+transitions:
+
+```json
+{ "status": "ACCEPTED" }
+```
+
+for an unassigned `PENDING` report in an assigned ward, then:
+
+```json
+{ "status": "IN_PROGRESS" }
+```
+
+and finally:
+
+```json
+{ "status": "COMPLETED" }
+```
+
+No database migration is required: report ownership is derived from
+`users.household_id -> households.ward_id`, worker eligibility from
+`worker_wards`, and acceptance from `assignments`.
+
+---
+
 # Feature 1 — Authentication
 
 Authentication handles citizen registration and login. JWT access tokens are used for protected APIs.
@@ -782,9 +863,8 @@ Content-Type: multipart/form-data
 |-------|------|----------|
 | image | File | Yes |
 | description | String | No |
-| latitude | Decimal | Yes |
-| longitude | Decimal | Yes |
-| address | String | Yes |
+
+Latitude, longitude and address are no longer required. When omitted, the report's address is automatically derived from the citizen's household address (house number + street name + address) registered at signup.
 
 ---
 
@@ -802,6 +882,8 @@ Maximum size
 
 Location
 
+Optional
+
 Latitude
 
 -90 → +90
@@ -812,7 +894,7 @@ Longitude
 
 Address
 
-Required
+Derived from the citizen's household when not supplied
 
 ---
 

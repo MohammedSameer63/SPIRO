@@ -4,8 +4,7 @@ import {
   getAdminWorkers,
   getAdminWards,
   assignWorkerToWard,
-  getAdminPendingReports,
-  assignReportToWorker,
+  removeWorkerFromWard,
 } from "../../api/admin";
 
 import type {
@@ -13,31 +12,12 @@ import type {
   AdminWard,
 } from "../../api/admin";
 
-type PendingReport = {
-  id: string;
-  description: string | null;
-  address: string | null;
-  latitude: number;
-  longitude: number;
-  status:
-    | "PENDING"
-    | "ACCEPTED"
-    | "IN_PROGRESS"
-    | "COMPLETED";
-  image_url: string;
-  created_at: string;
-  updated_at: string;
-};
-
 function Workers() {
   const [workers, setWorkers] =
     useState<AdminWorker[]>([]);
 
   const [wards, setWards] =
     useState<AdminWard[]>([]);
-
-  const [reports, setReports] =
-    useState<PendingReport[]>([]);
 
   const [loading, setLoading] =
     useState(true);
@@ -51,14 +31,11 @@ function Workers() {
   const [selectedWard, setSelectedWard] =
     useState("");
 
-  const [selectedReport, setSelectedReport] =
-    useState("");
-
   const [assigningWard, setAssigningWard] =
     useState(false);
 
-  const [assigningReport, setAssigningReport] =
-    useState(false);
+  const [removingWardId, setRemovingWardId] =
+    useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -72,11 +49,9 @@ function Workers() {
       const [
         workersResponse,
         wardsResponse,
-        reportsResponse,
       ] = await Promise.all([
         getAdminWorkers(),
         getAdminWards(),
-        getAdminPendingReports(),
       ]);
 
       if (workersResponse.success) {
@@ -87,9 +62,6 @@ function Workers() {
         setWards(wardsResponse.data);
       }
 
-      if (reportsResponse.success) {
-        setReports(reportsResponse.data);
-      }
     } catch (err: any) {
       console.error(err);
 
@@ -168,47 +140,45 @@ function Workers() {
     }
   }
 
-  async function handleAssignReport() {
-    if (!selectedWorker) {
-      return;
-    }
+  function closeWorkerPanel() {
+    setSelectedWorker(null);
+    setSelectedWard("");
+  }
 
-    if (!selectedReport) {
-      alert("Please select a report.");
+  async function handleRemoveWard(
+    workerId: string,
+    wardId: string,
+    wardName: string
+  ) {
+    if (!window.confirm(`Remove ${wardName} from this worker?`)) {
       return;
     }
 
     try {
-      setAssigningReport(true);
+      setRemovingWardId(wardId);
+      await removeWorkerFromWard(workerId, wardId);
 
-      await assignReportToWorker(
-        selectedReport,
-        selectedWorker
+      setWorkers((current) =>
+        current.map((worker) =>
+          worker.id === workerId
+            ? {
+                ...worker,
+                wards: worker.wards.filter(
+                  (ward) => ward.id !== wardId
+                ),
+              }
+            : worker
+        )
       );
-
-      alert(
-        "Report assigned to worker successfully!"
-      );
-
-      setSelectedReport("");
-
-      await loadData();
     } catch (err: any) {
       console.error(err);
-
       alert(
         err?.message ||
-          "Failed to assign report."
+          "Failed to remove worker from ward."
       );
     } finally {
-      setAssigningReport(false);
+      setRemovingWardId(null);
     }
-  }
-
-  function closeWorkerPanel() {
-    setSelectedWorker(null);
-    setSelectedWard("");
-    setSelectedReport("");
   }
 
   if (loading) {
@@ -246,7 +216,7 @@ function Workers() {
       </h1>
 
       <p style={styles.subtitle}>
-        Manage workers, wards and report assignments.
+        Manage workers and their ward queues.
       </p>
 
       <div style={styles.container}>
@@ -287,7 +257,6 @@ function Workers() {
                         worker.id
                       );
                       setSelectedWard("");
-                      setSelectedReport("");
                     }
                   }}
                   style={styles.button}
@@ -319,6 +288,26 @@ function Workers() {
                         style={styles.ward}
                       >
                         {ward.name}
+                        {selectedWorker === worker.id && (
+                          <button
+                            aria-label={`Remove ${ward.name}`}
+                            disabled={
+                              removingWardId === ward.id
+                            }
+                            onClick={() =>
+                              handleRemoveWard(
+                                worker.id,
+                                ward.id,
+                                ward.name
+                              )
+                            }
+                            style={styles.removeWard}
+                          >
+                            {removingWardId === ward.id
+                              ? "…"
+                              : "×"}
+                          </button>
+                        )}
                       </span>
                     )
                   )}
@@ -326,8 +315,12 @@ function Workers() {
               )}
 
               <p style={styles.count}>
-                {worker.wards.length}/5
-                wards assigned
+                {new Set(
+                  worker.wards.map((ward) => ward.id)
+                ).size} {" "}
+                {worker.wards.length === 1
+                  ? "ward"
+                  : "wards"} assigned
               </p>
 
               {/* Management Panel */}
@@ -396,81 +389,6 @@ function Workers() {
                       ? "Assigning..."
                       : "Assign Ward"}
                   </button>
-
-                  {/* Assign Report */}
-
-                  <h3
-                    style={
-                      styles.reportTitle
-                    }
-                  >
-                    Assign Pending Report
-                  </h3>
-
-                  {reports.length ===
-                  0 ? (
-                    <p
-                      style={
-                        styles.noReports
-                      }
-                    >
-                      No unassigned pending
-                      reports available.
-                    </p>
-                  ) : (
-                    <>
-                      <select
-                        value={
-                          selectedReport
-                        }
-                        onChange={(e) =>
-                          setSelectedReport(
-                            e.target.value
-                          )
-                        }
-                        style={
-                          styles.select
-                        }
-                      >
-                        <option value="">
-                          -- Select Pending Report --
-                        </option>
-
-                        {reports.map(
-                          (report) => (
-                            <option
-                              key={report.id}
-                              value={
-                                report.id
-                              }
-                            >
-                              {report.description ||
-                                "Waste Report"}{" "}
-                              —{" "}
-                              {report.address ||
-                                "No address"}
-                            </option>
-                          )
-                        )}
-                      </select>
-
-                      <button
-                        onClick={
-                          handleAssignReport
-                        }
-                        disabled={
-                          assigningReport
-                        }
-                        style={
-                          styles.reportButton
-                        }
-                      >
-                        {assigningReport
-                          ? "Assigning..."
-                          : "Assign Report"}
-                      </button>
-                    </>
-                  )}
 
                   <button
                     onClick={
@@ -547,6 +465,17 @@ const styles = {
     background: "#dcfce7",
     color: "#166534",
     borderRadius: "20px",
+  },
+
+  removeWard: {
+    marginLeft: "8px",
+    padding: "0",
+    border: "none",
+    background: "transparent",
+    color: "#166534",
+    cursor: "pointer",
+    fontSize: "16px",
+    lineHeight: "1",
   },
 
   noWard: {

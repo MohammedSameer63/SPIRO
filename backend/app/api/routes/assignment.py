@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user, require_role
@@ -68,9 +68,13 @@ async def create_assignment(
 )
 async def get_assignment(
     assignment_id: UUID,
+    current_user: User = Depends(require_role("ADMIN", "WORKER")),
     service: AssignmentService = Depends(get_assignment_service),
 ):
-    return service.get_assignment(assignment_id)
+    assignment = service.get_assignment(assignment_id)
+    if current_user.role.value != "ADMIN" and assignment.worker_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this assignment.")
+    return assignment
 
 
 @router.get(
@@ -79,9 +83,13 @@ async def get_assignment(
 )
 async def get_assignment_by_report(
     report_id: UUID,
+    current_user: User = Depends(require_role("ADMIN", "WORKER")),
     service: AssignmentService = Depends(get_assignment_service),
 ):
-    return service.get_assignment_by_report(report_id)
+    assignment = service.get_assignment_by_report(report_id)
+    if current_user.role.value != "ADMIN" and assignment.worker_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to view this assignment.")
+    return assignment
 
 
 @router.patch(
@@ -93,6 +101,9 @@ async def complete_assignment(
     current_user: User = Depends(require_role("WORKER")),
     service: AssignmentService = Depends(get_assignment_service),
 ):
+    assignment = service.get_assignment(assignment_id)
+    if assignment.worker_id != current_user.id:
+        raise HTTPException(status_code=403, detail="You do not have permission to complete this assignment.")
     return service.complete_assignment(
         assignment_id=assignment_id,
         performed_by=current_user.id,

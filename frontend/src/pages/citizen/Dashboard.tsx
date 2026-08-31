@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getReportStats } from "../../api/reports";
+import { getMyReports, type Report } from "../../api/reports";
 
 function Dashboard() {
   const [total, setTotal] = useState(0);
@@ -18,17 +18,26 @@ function Dashboard() {
       setLoading(true);
       setError("");
 
-      const response = await getReportStats();
+      const reports: Report[] = await getMyReports();
 
-      if (response.success) {
-        setTotal(response.data.total);
-        setPending(response.data.pending);
-        setCompleted(response.data.completed);
-      } else {
-        setError("Failed to load report statistics.");
-      }
+      setTotal(reports.length);
+
+      setPending(
+        reports.filter(
+          (report) => report.status === "PENDING"
+        ).length
+      );
+
+      setCompleted(
+        reports.filter(
+          (report) => report.status === "COMPLETED"
+        ).length
+      );
     } catch (err: any) {
-      console.error("Failed to load report statistics:", err);
+      console.error(
+        "Failed to load report statistics:",
+        err
+      );
 
       setError(
         err?.message ||
@@ -107,7 +116,8 @@ const styles = {
     padding: "25px",
     background: "white",
     borderRadius: "12px",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.08)",
+    boxShadow:
+      "0 4px 15px rgba(0,0,0,0.08)",
     minWidth: "180px",
   },
 

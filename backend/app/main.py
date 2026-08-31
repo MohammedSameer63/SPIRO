@@ -42,6 +42,7 @@ from app.api.routes.assignment import router as assignment_router
 from app.api.routes.household import router as household_router
 from app.api.routes.ward import router as ward_router
 from app.api.routes.auth import router as auth_router
+from app.api.routes.integration import router as integration_router
 from app.core.config import settings
 
 app = FastAPI(
@@ -321,3 +322,10 @@ app.include_router(
 )
 
 app.include_router(worker_ward_router)
+
+# Additive endpoints used by the existing web client. Existing route modules
+# remain available unchanged.
+app.include_router(
+    integration_router,
+    prefix=settings.api_prefix,
+)

@@ -7,9 +7,6 @@ function SubmitReport() {
 
   const [image, setImage] = useState<File | null>(null);
   const [description, setDescription] = useState("");
-  const [address, setAddress] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
 
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -28,21 +25,8 @@ function SubmitReport() {
       return;
     }
 
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      setError("Please enter valid latitude and longitude.");
-      return;
-    }
-
-    if (lat < -90 || lat > 90) {
-      setError("Latitude must be between -90 and 90.");
-      return;
-    }
-
-    if (lng < -180 || lng > 180) {
-      setError("Longitude must be between -180 and 180.");
+    if (!description.trim()) {
+      setError("Please describe the waste.");
       return;
     }
 
@@ -51,19 +35,13 @@ function SubmitReport() {
     try {
       await createReport(
         image,
-        description,
-        address,
-        lat,
-        lng
+        description
       );
 
       setSubmitted(true);
 
       setImage(null);
       setDescription("");
-      setAddress("");
-      setLatitude("");
-      setLongitude("");
 
       setTimeout(() => {
         navigate("/citizen/reports");
@@ -130,44 +108,6 @@ function SubmitReport() {
           value={description}
           onChange={(e) =>
             setDescription(e.target.value)
-          }
-          required
-        />
-
-        <label>Address</label>
-
-        <input
-          type="text"
-          placeholder="Enter waste location"
-          value={address}
-          onChange={(e) =>
-            setAddress(e.target.value)
-          }
-          required
-        />
-
-        <label>Latitude</label>
-
-        <input
-          type="number"
-          step="any"
-          placeholder="e.g. 12.9716"
-          value={latitude}
-          onChange={(e) =>
-            setLatitude(e.target.value)
-          }
-          required
-        />
-
-        <label>Longitude</label>
-
-        <input
-          type="number"
-          step="any"
-          placeholder="e.g. 77.5946"
-          value={longitude}
-          onChange={(e) =>
-            setLongitude(e.target.value)
           }
           required
         />

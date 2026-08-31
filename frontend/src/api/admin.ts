@@ -70,7 +70,7 @@ export type AssignWorkerResponse = {
 
 export async function getAdminDashboard() {
   return apiRequest<AdminDashboardResponse>(
-    "/reports/admin/dashboard",
+    "/admin/dashboard",
     {
       method: "GET",
     }
@@ -79,7 +79,7 @@ export async function getAdminDashboard() {
 
 export async function getAdminWorkers() {
   return apiRequest<AdminWorkersResponse>(
-    "/reports/admin/workers",
+    "/admin/workers",
     {
       method: "GET",
     }
@@ -88,7 +88,7 @@ export async function getAdminWorkers() {
 
 export async function getAdminWards() {
   return apiRequest<AdminWardsResponse>(
-    "/reports/admin/wards",
+    "/admin/wards",
     {
       method: "GET",
     }
@@ -100,12 +100,27 @@ export async function assignWorkerToWard(
   wardId: string
 ) {
   return apiRequest<AssignWorkerResponse>(
-    `/reports/admin/workers/${workerId}/wards/${wardId}`,
+    `/admin/workers/${workerId}/wards/${wardId}`,
     {
       method: "POST",
     }
   );
 }
+
+export async function removeWorkerFromWard(
+  workerId: string,
+  wardId: string
+) {
+  return apiRequest<{
+    success: boolean;
+    message: string;
+    data: { worker_id: string; ward_id: string };
+  }>(
+    `/admin/workers/${workerId}/wards/${wardId}`,
+    { method: "DELETE" }
+  );
+}
+
 export async function getAdminPendingReports() {
   return apiRequest<{
     success: boolean;
@@ -170,7 +185,7 @@ export type AdminSchedulesResponse = {
 
 export async function getAdminSchedules() {
   return apiRequest<AdminSchedulesResponse>(
-    "/reports/admin/schedules",
+    "/admin/schedules",
     {
       method: "GET",
     }
@@ -184,22 +199,21 @@ export async function createAdminSchedule(
   startTime: string,
   endTime: string
 ) {
-  const params = new URLSearchParams({
-    ward_id: wardId,
-    waste_category_id: categoryId,
-    day_of_week: day,
-    start_time: startTime,
-    end_time: endTime,
-  });
-
   return apiRequest<{
     success: boolean;
     message: string;
     data: AdminSchedule;
   }>(
-    `/reports/admin/schedules?${params.toString()}`,
+    "/admin/schedules",
     {
       method: "POST",
+      body: JSON.stringify({
+        ward_id: wardId,
+        waste_category_id: categoryId,
+        day_of_week: day,
+        start_time: startTime,
+        end_time: endTime,
+      }),
     }
   );
 }
@@ -211,7 +225,7 @@ export async function deleteAdminSchedule(
     success: boolean;
     message: string;
   }>(
-    `/reports/admin/schedules/${scheduleId}`,
+    `/admin/schedules/${scheduleId}`,
     {
       method: "DELETE",
     }
@@ -220,7 +234,6 @@ export async function deleteAdminSchedule(
 export type AdminWasteCategory = {
   id: string;
   name: string;
-  recyclable: boolean;
   description: string | null;
 };
 
@@ -231,7 +244,7 @@ export type AdminWasteCategoriesResponse = {
 
 export async function getAdminWasteCategories() {
   return apiRequest<AdminWasteCategoriesResponse>(
-    "/reports/admin/waste-categories",
+    "/admin/waste-categories",
     {
       method: "GET",
     }
