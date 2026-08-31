@@ -1,0 +1,102 @@
+# =============================================================================
+# TACO → SPIRO Mapping
+# Source: TACO (Trash Annotations in Context)
+# License: MIT
+# URL: http://tacodataset.org
+# Citation: Proença, P.F. & Simões, P. (2020). TACO: Trash Annotations in
+#           Context for Litter Detection. arXiv:2003.06975
+# =============================================================================
+#
+# TACO uses 60 categories. Each entry maps a TACO category name to one or
+# more SPIRO class IDs.
+# When a TACO category maps to multiple SPIRO classes the "primary" ID is
+# used for single-label tasks; all IDs are available for multi-label.
+#
+# source_class: TACO category string (lowercase, as returned by TACO API)
+# spiro_ids:   list of matching SPIRO class IDs (first = primary)
+# notes:       rationale for ambiguous mappings
+# =============================================================================
+
+dataset:
+  name: TACO
+  version: "1.0"
+  license: MIT
+  homepage: "http://tacodataset.org"
+  paper: "https://arxiv.org/abs/2003.06975"
+  annotation_format: COCO
+  checksum_file: "taco_checksums.json"
+
+mappings:
+  # ── Plastic ──────────────────────────────────────────────────────────────────
+  "drink carton":               {spiro_ids: [46],        notes: "tetra pak / carton"}
+  "clear plastic bottle":       {spiro_ids: [0],         notes: ""}
+  "other plastic bottle":       {spiro_ids: [0],         notes: ""}
+  "plastic bottle cap":         {spiro_ids: [1],         notes: ""}
+  "other plastic cup":          {spiro_ids: [5],         notes: ""}
+  "plastic film":               {spiro_ids: [3],         notes: ""}
+  "plastic bag & wrapper":      {spiro_ids: [2],         notes: ""}
+  "plastic straw":              {spiro_ids: [4],         notes: ""}
+  "plastic lid":                {spiro_ids: [6],         notes: ""}
+  "single-use carrier bag":     {spiro_ids: [2],         notes: ""}
+  "polypropylene bag":          {spiro_ids: [2],         notes: ""}
+  "plastic utensil":            {spiro_ids: [7],         notes: "fork/knife/spoon → primary fork"}
+  "foam cup":                   {spiro_ids: [19],        notes: "polystyrene cup"}
+  "foam food container":        {spiro_ids: [20],        notes: "polystyrene container"}
+  "plastic container":          {spiro_ids: [10],        notes: ""}
+  "rope & string":              {spiro_ids: [15],        notes: ""}
+  "six pack rings":             {spiro_ids: [12],        notes: "plastic packaging"}
+  "crisp packet":               {spiro_ids: [12],        notes: "plastic packaging/film"}
+  "spread tub":                 {spiro_ids: [10],        notes: "plastic container"}
+  "tupperware":                 {spiro_ids: [10],        notes: "plastic container"}
+  "toilet tube":                {spiro_ids: [37],        notes: "cardboard fragment"}
+  "wrapping paper":             {spiro_ids: [42],        notes: "paper packaging"}
+
+  # ── Metal ────────────────────────────────────────────────────────────────────
+  "aluminium foil":             {spiro_ids: [31],        notes: "metal foil"}
+  "drink can":                  {spiro_ids: [27],        notes: "metal can beverage"}
+  "food can":                   {spiro_ids: [28],        notes: "metal can food"}
+  "aerosol":                    {spiro_ids: [34],        notes: ""}
+  "metal bottle cap":           {spiro_ids: [29],        notes: ""}
+  "metal lid":                  {spiro_ids: [30],        notes: ""}
+  "broken glass":               {spiro_ids: [24],        notes: "glass fragment"}
+  "pop tab":                    {spiro_ids: [29],        notes: "metal bottle cap"}
+
+  # ── Glass ────────────────────────────────────────────────────────────────────
+  "glass bottle":               {spiro_ids: [22],        notes: ""}
+  "glass cup":                  {spiro_ids: [25],        notes: ""}
+  "glass jar":                  {spiro_ids: [23],        notes: ""}
+
+  # ── Paper ────────────────────────────────────────────────────────────────────
+  "cardboard":                  {spiro_ids: [36, 37],    notes: "box or fragment"}
+  "paper cup":                  {spiro_ids: [39],        notes: ""}
+  "paper bag":                  {spiro_ids: [38],        notes: ""}
+  "magazine paper":             {spiro_ids: [41],        notes: ""}
+  "newspaper":                  {spiro_ids: [40],        notes: ""}
+  "pizza box":                  {spiro_ids: [97],        notes: ""}
+  "tissue":                     {spiro_ids: [43],        notes: "tissue paper"}
+
+  # ── Cigarette ────────────────────────────────────────────────────────────────
+  "cigarette":                  {spiro_ids: [53],        notes: "cigarette butt"}
+  "lighter":                    {spiro_ids: [55],        notes: ""}
+
+  # ── Biological / Organic ─────────────────────────────────────────────────────
+  "bio-waste":                  {spiro_ids: [47],        notes: "food waste generic"}
+  "meal waste":                 {spiro_ids: [47],        notes: "food waste generic"}
+  "food waste":                 {spiro_ids: [47],        notes: ""}
+
+  # ── Medical ──────────────────────────────────────────────────────────────────
+  "mask":                       {spiro_ids: [59],        notes: "disposable mask"}
+  "glove":                      {spiro_ids: [60],        notes: "disposable glove"}
+
+  # ── Misc ─────────────────────────────────────────────────────────────────────
+  "battery":                    {spiro_ids: [61],        notes: ""}
+  "shoe":                       {spiro_ids: [57],        notes: ""}
+  "unlabeled litter":           {spiro_ids: [106],       notes: "unknown litter"}
+  "other litter":               {spiro_ids: [106],       notes: ""}
+  "garbage bag":                {spiro_ids: [2],         notes: "plastic bag"}
+  "fishing net":                {spiro_ids: [95],        notes: ""}
+  "string & rubber band":       {spiro_ids: [86],        notes: "rubber band"}
+  "squeezable tube":            {spiro_ids: [14],        notes: "plastic tube"}
+
+# Classes dropped (TACO has no SPIRO equivalent — excluded from merge)
+excluded: []

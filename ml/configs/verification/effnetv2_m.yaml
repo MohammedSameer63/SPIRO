@@ -1,0 +1,10 @@
+# EfficientNetV2-M (384px, high accuracy)
+_base_: "./effnetv2_verify.yaml"
+experiment:
+  name: "spiro_effnetv2_m"
+model:
+  variant: "efficientnetv2_m"
+  input_size: 384
+training:
+  batch_size: 16
+  gradient_accumulation: 2

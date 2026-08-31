@@ -1,0 +1,140 @@
+# =============================================================================
+# SPIRO ML — YOLOv11 Training Configuration
+# All training knobs in one place. Overridable via CLI or experiment YAMLs.
+# =============================================================================
+
+experiment:
+  name: "spiro_yolov11"
+  project: "spiro_ml"
+  tags: ["yolov11", "detection", "spiro"]
+  notes: ""
+  seed: 42
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  # One of: yolo11n.pt | yolo11s.pt | yolo11m.pt | yolo11l.pt | yolo11x.pt
+  weights: "yolo11n.pt"
+  num_classes: 109
+  input_size: 640          # single int → square; [w,h] for rectangular
+  pretrained: true
+  # Task: detect | segment | classify
+  task: "detect"
+
+# ── Dataset ───────────────────────────────────────────────────────────────────
+dataset:
+  yaml: "configs/dataset.yaml"   # YOLO dataset YAML (points to processed splits)
+  workers: 8
+  cache: false                   # cache images in RAM (true if RAM > 32 GB)
+  rect: false                    # rectangular training (saves padding cost)
+  single_cls: false              # treat all classes as one
+  class_weights: []              # per-class loss weights (empty = uniform)
+
+# ── Training loop ─────────────────────────────────────────────────────────────
+training:
+  epochs: 300
+  batch_size: 16
+  device: "auto"           # auto | cpu | 0 | 0,1 | mps
+  amp: true                # Automatic Mixed Precision
+  gradient_accumulation: 1 # accumulate grads over N batches before step
+  patience: 50             # early-stopping patience (0 = off)
+  save_period: 10          # save checkpoint every N epochs (-1 = off)
+  val_period: 1            # validate every N epochs
+  resume: false            # resume from last.pt automatically
+  resume_checkpoint: null  # explicit checkpoint path (overrides last.pt)
+  deterministic: true      # enforce deterministic CUDA ops (slightly slower)
+  benchmark: false         # cudnn.benchmark (faster for fixed-size input)
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+optimizer:
+  name: "SGD"              # SGD | Adam | AdamW | RMSProp | auto
+  lr0: 0.01                # initial learning rate
+  lrf: 0.01                # final lr = lr0 * lrf (for cosine schedule)
+  momentum: 0.937          # SGD momentum / Adam beta1
+  weight_decay: 0.0005
+  warmup_epochs: 3.0
+  warmup_momentum: 0.8
+  warmup_bias_lr: 0.1
+  nbs: 64                  # nominal batch size for lr scaling
+
+# ── LR Scheduler ──────────────────────────────────────────────────────────────
+scheduler:
+  name: "cosine"           # cosine | linear | onecycle
+  # OneCycle params (used when name == onecycle)
+  pct_start: 0.1
+  div_factor: 25.0
+  final_div_factor: 1e4
+
+# ── EMA ───────────────────────────────────────────────────────────────────────
+ema:
+  enabled: true
+  decay: 0.9999
+  tau: 2000                # EMA decay ramp-up period (steps)
+
+# ── Loss weights ──────────────────────────────────────────────────────────────
+loss:
+  box: 7.5
+  cls: 0.5
+  dfl: 1.5
+
+# ── Augmentation ──────────────────────────────────────────────────────────────
+augmentation:
+  enabled: true
+  # Color / HSV
+  hsv_h: 0.015             # hue fraction
+  hsv_s: 0.7               # saturation fraction
+  hsv_v: 0.4               # value fraction
+  # Geometric
+  degrees: 0.0             # rotation (+/- deg)
+  translate: 0.1           # translation (+/- fraction)
+  scale: 0.5               # scale (+/- gain)
+  shear: 0.0               # shear (+/- deg)
+  perspective: 0.0         # perspective distortion (0–0.001)
+  flipud: 0.0              # vertical flip probability
+  fliplr: 0.5              # horizontal flip probability
+  # Mosaic / mix
+  mosaic: 1.0              # mosaic augmentation probability
+  mixup: 0.0               # mixup augmentation probability
+  copy_paste: 0.0          # copy-paste probability (segment only)
+  # Label smoothing
+  label_smoothing: 0.0
+  # Auto-augment policy (randaugment | autoaugment | augmix | "")
+  auto_augment: ""
+  # Erasing
+  erasing: 0.4             # random erasing probability
+  crop_fraction: 1.0       # image crop fraction
+
+# ── Validation ────────────────────────────────────────────────────────────────
+validation:
+  conf_threshold: 0.001    # low threshold for full PR curve
+  iou_threshold: 0.6       # NMS IoU for validation
+  max_det: 300
+  save_json: false         # save COCO-format predictions
+  save_txt: false
+  plots: true              # generate confusion matrix, PR curves
+
+# ── Checkpoint ────────────────────────────────────────────────────────────────
+checkpoint:
+  dir: "models/checkpoints"
+  save_best: true
+  save_last: true
+  metric: "mAP50-95"       # metric to track for best model
+
+# ── Export ────────────────────────────────────────────────────────────────────
+export:
+  auto_export_onnx: true   # export best.pt to ONNX after training
+  opset: 17
+  dynamic: true
+  simplify: true
+  half: false              # FP16 export (requires GPU)
+  verify: true             # run ORT verification after export
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  tensorboard: true
+  csv: true
+  console: true
+  log_dir: "logs"
+  tensorboard_dir: "logs/tensorboard"
+  csv_path: "logs/training_history.csv"
+  log_images_every_n_epochs: 10
+  verbose: true

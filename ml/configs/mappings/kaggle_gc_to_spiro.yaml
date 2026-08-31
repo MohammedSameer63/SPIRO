@@ -1,0 +1,39 @@
+# =============================================================================
+# Kaggle Garbage Classification → SPIRO Mapping
+# Source: Garbage Classification (v2) by asdasdasasdas on Kaggle
+# License: CC0 1.0 Public Domain
+# URL: https://www.kaggle.com/datasets/asdasdasasdas/garbage-classification
+# Classes: 12 (battery, biological, brown-glass, cardboard, clothes,
+#              green-glass, metal, paper, plastic, shoes, trash, white-glass)
+# Task: Image classification (no bounding boxes)
+# =============================================================================
+
+dataset:
+  name: KaggleGarbageClassification
+  version: "2"
+  license: "CC0 1.0"
+  homepage: "https://www.kaggle.com/datasets/asdasdasasdas/garbage-classification"
+  annotation_format: "image_folder"
+  has_bboxes: false
+  checksum_file: "kaggle_gc_checksums.json"
+  notes: >
+    12-class classification dataset. No bounding boxes. Pseudo-annotations
+    generated using the same centre-crop strategy as TrashNet.
+
+mappings:
+  "battery":        {spiro_ids: [61],   notes: ""}
+  "biological":     {spiro_ids: [47],   notes: "food waste generic"}
+  "brown-glass":    {spiro_ids: [22],   notes: "glass bottle"}
+  "cardboard":      {spiro_ids: [36],   notes: "cardboard box"}
+  "clothes":        {spiro_ids: [56],   notes: "clothing item"}
+  "green-glass":    {spiro_ids: [22],   notes: "glass bottle (colour variant)"}
+  "metal":          {spiro_ids: [27],   notes: "metal can beverage as representative"}
+  "paper":          {spiro_ids: [40],   notes: "newspaper as representative"}
+  "plastic":        {spiro_ids: [0],    notes: "plastic bottle as representative"}
+  "shoes":          {spiro_ids: [57],   notes: "shoe"}
+  "trash":          {spiro_ids: [106],  notes: "unknown litter"}
+  "white-glass":    {spiro_ids: [22],   notes: "glass bottle (colour variant)"}
+
+pseudo_bbox:
+  centre_crop_fraction: 0.85
+  label_confidence: "full_image"

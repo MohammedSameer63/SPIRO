@@ -1,0 +1,24 @@
+# =============================================================================
+# SPIRO — YOLOv11-small experiment
+# =============================================================================
+_base_: "./yolov11_training.yaml"
+
+experiment:
+  name: "spiro_yolo11s"
+  tags: ["yolov11s", "small"]
+
+model:
+  weights: "yolo11s.pt"
+
+training:
+  epochs: 300
+  batch_size: 32
+  patience: 50
+
+optimizer:
+  lr0: 0.01
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.1
+  copy_paste: 0.1

@@ -1,0 +1,288 @@
+# =============================================================================
+# SPIRO Unified Taxonomy — 109 Classes
+# 7 Disposal Streams:
+#   organic       — food/garden/biodegradable waste (compost/green bin)
+#   recoverable   — clean recyclables (plastic, glass, metal, paper, cardboard)
+#   non_recoverable — contaminated / mixed / residual waste (general bin)
+#   hazardous     — chemicals, paint, fuel, sharp metal
+#   sanitary      — medical, hygiene, bodily waste
+#   e_waste       — electronics and batteries
+#   reject        — unclassified, unknown, heavily mixed
+# =============================================================================
+
+taxonomy:
+  version: "2.0.0"
+  total_classes: 109
+  streams: 7
+  description: "SPIRO unified waste taxonomy — 7 disposal streams"
+
+classes:
+
+  # ─── PLASTIC ────────────────────────────────────────────────────────────────
+  0:  plastic_bottle
+  1:  plastic_bottle_cap
+  2:  plastic_bag
+  3:  plastic_film
+  4:  plastic_straw
+  5:  plastic_cup
+  6:  plastic_lid
+  7:  plastic_cutlery_fork
+  8:  plastic_cutlery_knife
+  9:  plastic_cutlery_spoon
+  10: plastic_container
+  11: plastic_tray
+  12: plastic_packaging
+  13: plastic_wrap
+  14: plastic_tube
+  15: plastic_rope
+  16: plastic_toy
+  17: plastic_hanger
+  18: plastic_bucket
+  19: polystyrene_cup
+  20: polystyrene_container
+  21: polystyrene_packaging
+
+  # ─── GLASS ──────────────────────────────────────────────────────────────────
+  22: glass_bottle
+  23: glass_jar
+  24: glass_fragment
+  25: glass_cup
+  26: glass_window_fragment
+
+  # ─── METAL ──────────────────────────────────────────────────────────────────
+  27: metal_can_beverage
+  28: metal_can_food
+  29: metal_bottle_cap
+  30: metal_lid
+  31: metal_foil
+  32: metal_scrap
+  33: metal_wire
+  34: aerosol_can
+  35: metal_tin
+
+  # ─── PAPER & CARDBOARD ──────────────────────────────────────────────────────
+  36: cardboard_box
+  37: cardboard_fragment
+  38: paper_bag
+  39: paper_cup
+  40: newspaper
+  41: magazine
+  42: paper_packaging
+  43: tissue_paper
+  44: paper_straw
+  45: receipt
+  46: carton_drink
+
+  # ─── ORGANIC / FOOD WASTE ───────────────────────────────────────────────────
+  47: food_waste_generic
+  48: fruit_peel
+  49: vegetable_scraps
+  50: eggshell
+  51: coffee_grounds
+  52: food_packaging_contaminated
+
+  # ─── CIGARETTE / TOBACCO ────────────────────────────────────────────────────
+  53: cigarette_butt
+  54: cigarette_pack
+  55: lighter
+
+  # ─── TEXTILE ────────────────────────────────────────────────────────────────
+  56: clothing_item
+  57: shoe
+  58: textile_scrap
+  59: mask_disposable
+  60: glove_disposable
+
+  # ─── ELECTRONIC WASTE ───────────────────────────────────────────────────────
+  61: battery
+  62: cable_wire
+  63: circuit_board
+  64: mobile_phone
+  65: earphone
+
+  # ─── MEDICAL / SANITARY ─────────────────────────────────────────────────────
+  66: syringe
+  67: medicine_blister
+  68: bandage
+  69: sanitary_pad
+  70: diaper
+
+  # ─── BEVERAGE-SPECIFIC ──────────────────────────────────────────────────────
+  71: coffee_pod
+  72: tea_bag
+
+  # ─── CONSTRUCTION ───────────────────────────────────────────────────────────
+  73: brick_fragment
+  74: concrete_fragment
+  75: paint_can
+  76: wood_scrap
+
+  # ─── AUTOMOTIVE ─────────────────────────────────────────────────────────────
+  77: tire
+  78: car_part_generic
+
+  # ─── BIODEGRADABLE / GARDEN ─────────────────────────────────────────────────
+  79: leaf_litter
+  80: twig_branch
+  81: soil_bag
+
+  # ─── HAZARDOUS ──────────────────────────────────────────────────────────────
+  82: chemical_container
+  83: oil_container
+  84: propane_tank_small
+
+  # ─── LITTER / SMALL ─────────────────────────────────────────────────────────
+  85: bottle_label
+  86: rubber_band
+  87: tape
+  88: sticker_label
+  89: zip_tie
+  90: paper_clip
+  91: pen_marker
+  92: broken_glass_mirror
+
+  # ─── SPORTS / RECREATION ────────────────────────────────────────────────────
+  93: balloon
+  94: fishing_line
+  95: fishing_net_fragment
+
+  # ─── CONVENIENCE / FAST FOOD ────────────────────────────────────────────────
+  96: fast_food_container
+  97: pizza_box
+  98: sauce_packet
+  99: condiment_container
+
+  # ─── DURABLE GOODS ──────────────────────────────────────────────────────────
+  100: appliance_small
+  101: furniture_fragment
+
+  # ─── INFRASTRUCTURE ─────────────────────────────────────────────────────────
+  102: traffic_cone
+  103: pallet
+
+  # ─── MULTI-MATERIAL ─────────────────────────────────────────────────────────
+  104: composite_packaging
+  105: blister_pack
+
+  # ─── MISC / UNCLASSIFIED ────────────────────────────────────────────────────
+  106: unknown_litter
+  107: wet_waste_generic
+  108: dry_waste_generic
+
+# ─── Material groups (for dataset stratification) ───────────────────────────
+groups:
+  plastic:       [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21]
+  glass:         [22,23,24,25,26]
+  metal:         [27,28,29,30,31,32,33,34,35]
+  paper:         [36,37,38,39,40,41,42,43,44,45,46]
+  organic:       [47,48,49,50,51,52]
+  cigarette:     [53,54,55]
+  textile:       [56,57,58,59,60]
+  electronic:    [61,62,63,64,65]
+  medical:       [66,67,68,69,70]
+  beverage:      [71,72]
+  construction:  [73,74,75,76]
+  automotive:    [77,78]
+  biodegradable: [79,80,81]
+  hazardous:     [82,83,84]
+  small_litter:  [85,86,87,88,89,90,91,92]
+  recreation:    [93,94,95]
+  fast_food:     [96,97,98,99]
+  durable:       [100,101]
+  infrastructure: [102,103]
+  multi_material: [104,105]
+  misc:          [106,107,108]
+
+# =============================================================================
+# 7 DISPOSAL STREAMS
+# These are the ONLY streams used in guidance, output JSON, and frontend display
+# =============================================================================
+streams:
+
+  organic:
+    label: "Organic Waste"
+    description: "Biodegradable food, garden, and natural waste — compost or green bin"
+    color: "#4CAF50"
+    icon: "leaf"
+    bin_color: "green"
+    ids: [47,48,49,50,51,72,79,80,81]
+    # food waste, fruit peel, vegetable scraps, eggshell, coffee grounds,
+    # tea bag, leaf litter, twig branch, soil bag
+
+  recoverable:
+    label: "Recoverable Waste"
+    description: "Clean recyclable materials — plastic, glass, metal, paper, cardboard"
+    color: "#2196F3"
+    icon: "recycle"
+    bin_color: "blue"
+    ids: [0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,18,
+          22,23,25,
+          27,28,29,30,31,35,
+          36,37,38,40,41,42,44,45,46,
+          71,76,103]
+    # clean plastic bottles, bags, film, straws, cups, lids, cutlery,
+    # containers, trays, packaging, wrap, tube, bucket
+    # glass bottle, jar, cup
+    # metal cans (beverage/food), bottle cap, lid, foil, tin
+    # cardboard box/fragment, paper bag, newspaper, magazine, packaging,
+    # paper straw, receipt, carton_drink
+    # coffee pod (metal/plastic), wood scrap (clean), pallet
+
+  non_recoverable:
+    label: "Non-Recoverable Waste"
+    description: "Contaminated, composite, or residual waste — general waste bin"
+    color: "#FF9800"
+    icon: "trash"
+    bin_color: "black"
+    ids: [15,16,17,19,20,21,24,26,32,33,
+          39,43,52,53,54,55,56,57,58,
+          73,74,77,78,85,86,87,88,89,90,91,92,
+          93,94,95,96,97,98,99,100,101,102,
+          104,105,107,108]
+    # plastic rope/toy/hanger (non-recyclable)
+    # polystyrene (cup/container/packaging — not recycled everywhere)
+    # glass fragment, window fragment, metal scrap/wire
+    # paper cup (wax lined), tissue paper, contaminated food packaging
+    # cigarette butt/pack/lighter, clothing, shoe, textile scrap
+    # brick, concrete, tire, car part
+    # small litter items, balloon/fishing line/net
+    # fast food containers, pizza box, sauce/condiment
+    # small appliance, furniture fragment, traffic cone
+    # composite/blister pack, wet/dry misc
+
+  hazardous:
+    label: "Hazardous Waste"
+    description: "Dangerous chemicals, flammables, and sharp metal — hazardous collection point"
+    color: "#F44336"
+    icon: "warning"
+    bin_color: "red"
+    ids: [34,75,82,83,84]
+    # aerosol can, paint can, chemical container, oil container, propane tank
+
+  sanitary:
+    label: "Sanitary Waste"
+    description: "Medical, hygiene, and bodily waste — sealed sanitary bin"
+    color: "#9C27B0"
+    icon: "medical"
+    bin_color: "purple"
+    ids: [59,60,66,67,68,69,70]
+    # disposable mask, disposable glove, syringe, medicine blister,
+    # bandage, sanitary pad, diaper
+
+  e_waste:
+    label: "E-Waste"
+    description: "Electronics and batteries — e-waste collection point"
+    color: "#607D8B"
+    icon: "electrical"
+    bin_color: "grey"
+    ids: [61,62,63,64,65]
+    # battery, cable/wire, circuit board, mobile phone, earphone
+
+  reject:
+    label: "Reject / Unknown"
+    description: "Cannot be classified — manual inspection required"
+    color: "#9E9E9E"
+    icon: "question"
+    bin_color: "grey"
+    ids: [106]
+    # unknown_litter only — everything else now has a definitive stream

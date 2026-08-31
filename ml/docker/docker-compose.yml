@@ -1,0 +1,130 @@
+version: "3.9"
+
+# SPIRO ML Production Service Stack
+# Usage:
+#   CPU only:  docker-compose up spiro-cpu
+#   GPU:       docker-compose --profile gpu up spiro-gpu
+#   Training:  docker-compose --profile training up training
+#   MLflow:    docker-compose --profile monitoring up mlflow
+
+services:
+
+  # ── CPU Inference Service ────────────────────────────────────────────────────
+  spiro-cpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.cpu
+    image: spiro-ml-cpu:latest
+    container_name: spiro_ml_cpu
+    restart: unless-stopped
+    volumes:
+      - ../models:/app/models:ro
+      - ../configs:/app/configs:ro
+      - ../logs:/app/logs
+      - ../reports:/app/reports
+      - ../mlops:/app/mlops
+    environment:
+      - SPIRO_ENV=production
+      - SPIRO_DEVICE=cpu
+      - ORT_NUM_THREADS=4
+      - ORT_LOGGING_LEVEL=3
+    healthcheck:
+      test: ["CMD", "python", "/app/scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── GPU Inference Service ────────────────────────────────────────────────────
+  spiro-gpu:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.gpu
+    image: spiro-ml-gpu:latest
+    container_name: spiro_ml_gpu
+    restart: unless-stopped
+    profiles: ["gpu"]
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    volumes:
+      - ../models:/app/models:ro
+      - ../configs:/app/configs:ro
+      - ../logs:/app/logs
+      - ../reports:/app/reports
+    environment:
+      - SPIRO_ENV=production
+      - SPIRO_DEVICE=cuda
+      - CUDA_VISIBLE_DEVICES=0
+    healthcheck:
+      test: ["CMD", "python", "/app/scripts/healthcheck.py"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 90s
+
+  # ── Training Service ─────────────────────────────────────────────────────────
+  training:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.training
+    image: spiro-ml-training:latest
+    container_name: spiro_training
+    profiles: ["training"]
+    runtime: nvidia
+    environment:
+      - SPIRO_ENV=training
+      - CUDA_VISIBLE_DEVICES=0
+    volumes:
+      - ../:/workspace
+      - ../datasets:/workspace/datasets
+      - ../models:/workspace/models
+      - ../logs:/workspace/logs
+    command: >
+      bash -c "echo 'Training container ready. Run: docker exec -it spiro_training python training/trainer.py --variant s'"
+
+  # ── MLflow Experiment Tracking ───────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.13.0
+    container_name: spiro_mlflow
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    volumes:
+      - ../mlops/mlflow:/mlflow
+    environment:
+      - MLFLOW_TRACKING_URI=file:///mlflow
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+      --backend-store-uri file:///mlflow
+      --default-artifact-root file:///mlflow/artifacts
+      --host 0.0.0.0
+      --port 5000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── TensorBoard ──────────────────────────────────────────────────────────────
+  tensorboard:
+    image: tensorflow/tensorflow:2.16.1
+    container_name: spiro_tensorboard
+    profiles: ["monitoring"]
+    restart: unless-stopped
+    volumes:
+      - ../logs:/logs:ro
+    ports:
+      - "6006:6006"
+    command: tensorboard --logdir /logs --host 0.0.0.0 --port 6006
+
+volumes:
+  models:
+  logs:
+  reports:
+  mlops:

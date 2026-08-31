@@ -1,0 +1,119 @@
+# =============================================================================
+# SPIRO ML — Production Inference Pipeline Configuration
+# Full end-to-end pipeline: preprocess → detect → verify → fuse → guide
+# =============================================================================
+
+pipeline:
+  name: "spiro_inference_pipeline"
+  version: "1.0.0"
+  description: "SPIRO production inference pipeline"
+
+# ── Model Paths ───────────────────────────────────────────────────────────────
+models:
+  yolo_onnx: "models/exports/spiro_yolov11s_best.onnx"
+  effnet_onnx: "models/exports/spiro_effnetv2_s_best_effnet.onnx"
+  yolo_input_size: 640
+  effnet_input_size: 300
+  num_classes: 109
+
+# ── ONNX Runtime ──────────────────────────────────────────────────────────────
+runtime:
+  # Provider priority order — auto-falls back on unavailability
+  providers:
+    - "TensorrtExecutionProvider"
+    - "CUDAExecutionProvider"
+    - "CPUExecutionProvider"
+  yolo_threads: 4
+  effnet_threads: 4
+  graph_optimization: "ORT_ENABLE_ALL"   # DISABLE | BASIC | EXTENDED | ALL
+  enable_mem_pattern: true
+  enable_cpu_mem_arena: true
+  # FP16 inference (CUDA only)
+  fp16: false
+  # Batch sizes
+  yolo_batch: 1
+  effnet_batch: 8      # process crops in batches
+  warmup_runs: 3
+
+# ── Image Preprocessing ───────────────────────────────────────────────────────
+preprocessing:
+  # Input validation
+  max_file_size_mb: 50
+  supported_formats: ["jpg", "jpeg", "png", "bmp", "webp", "tiff"]
+  min_resolution: [64, 64]
+  max_resolution: [8192, 8192]
+  # Quality gates
+  blur_detection: true
+  blur_threshold: 80.0        # Laplacian variance; below = reject
+  brightness_min: 20.0        # mean pixel value; below = too dark
+  brightness_max: 245.0       # above = overexposed
+  quality_score_threshold: 0.3  # 0–1; below = reject
+  # EXIF auto-orientation
+  auto_orient: true
+  # Resize / letterbox
+  target_size: 640
+  letterbox_color: [114, 114, 114]
+  normalize: true             # /255 for YOLO input
+
+# ── Detection (YOLOv11) ───────────────────────────────────────────────────────
+detection:
+  conf_threshold: 0.25
+  iou_threshold: 0.45
+  max_detections: 100
+  min_bbox_area: 0.001        # fraction of image area
+  agnostic_nms: false         # class-agnostic NMS
+
+# ── Cropping ──────────────────────────────────────────────────────────────────
+cropping:
+  padding_fraction: 0.08      # fractional padding around each bbox
+  min_crop_pixels: 16         # reject crops smaller than this
+
+# ── Verification (EfficientNetV2) ────────────────────────────────────────────
+verification:
+  enabled: true
+  top_k: 5
+  temperature: 1.0            # temperature scaling (1.0 = none)
+
+# ── Confidence Fusion ─────────────────────────────────────────────────────────
+fusion:
+  method: "weighted_average"  # weighted_average | geometric_mean | harmonic_mean | bayesian | temperature
+  yolo_weight: 0.45
+  effnet_weight: 0.55
+  min_final_confidence: 0.25  # below this → uncertain
+
+# ── Contamination ────────────────────────────────────────────────────────────
+contamination:
+  enabled: true
+  food_residue_classes: [47, 48, 49, 50, 51, 52]  # organic class IDs
+  hazardous_classes: [61, 66, 67, 82, 83, 84]
+  sanitary_classes: [59, 60, 66, 69, 70]
+  wet_indicator_threshold: 0.6  # fusion confidence threshold
+  mixed_waste_penalty: 0.3      # contamination score penalty per conflict
+
+# ── Guidance ─────────────────────────────────────────────────────────────────
+guidance:
+  enabled: true
+  language: "en"
+  include_collection_point: true
+  include_warnings: true
+  include_preparation_steps: true
+
+# ── Explainability ───────────────────────────────────────────────────────────
+explainability:
+  enabled: true
+  gradcam: false              # set true for Grad-CAM (slower)
+  save_visualizations: false  # save heatmaps to disk
+  visualization_dir: "reports/pipeline_viz"
+  include_reasoning_chain: true
+
+# ── Output ───────────────────────────────────────────────────────────────────
+output:
+  include_probabilities: false   # include full 109-class prob vector
+  include_timings: true
+  include_model_versions: true
+  pretty_json: false
+
+# ── Performance ──────────────────────────────────────────────────────────────
+performance:
+  benchmark_n_runs: 100
+  log_slow_threshold_ms: 500   # log warning if inference exceeds this

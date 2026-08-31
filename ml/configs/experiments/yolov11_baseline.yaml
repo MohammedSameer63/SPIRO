@@ -1,0 +1,27 @@
+# =============================================================================
+# Experiment: YOLOv11 Baseline
+# Inherits from base_config.yaml — only overrides are listed
+# =============================================================================
+
+_base_: "../base_config.yaml"
+
+experiment:
+  name: "yolov11_baseline"
+  tags: ["baseline", "yolov11", "detection"]
+  notes: "Initial YOLOv11n baseline run on full SPIRO dataset"
+
+model:
+  architecture: "yolov11"
+  variant: "yolo11n.pt"
+  pretrained: true
+
+training:
+  epochs: 100
+  batch_size: 16
+  learning_rate: 0.01
+  device: "auto"
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.0
+  copy_paste: 0.0

@@ -1,0 +1,36 @@
+# =============================================================================
+# ZeroWaste-f → SPIRO Mapping
+# Source: ZeroWaste dataset (Facebook AI / Cyrill Stachniss Lab)
+# License: CC BY-NC 4.0
+# URL: https://zerowaste.epfl.ch / https://github.com/dbash/zerowaste
+# Citation: Bashkirova, D. et al. (2022). ZeroWaste Dataset: Towards
+#           Deformable Object Segmentation in Cluttered Scenes.
+#           CVPR 2022.
+# Classes: 4 recycling categories (rigids_plastic, cardboard, metals_and_foil, soft_plastics)
+# Annotation: Instance segmentation (COCO format) — converted to bboxes
+# =============================================================================
+
+dataset:
+  name: ZeroWaste-f
+  version: "2022"
+  license: "CC BY-NC 4.0"
+  homepage: "https://zerowaste.epfl.ch"
+  paper: "https://arxiv.org/abs/2106.02740"
+  annotation_format: COCO
+  has_segmentation: true
+  checksum_file: "zerowaste_checksums.json"
+  notes: >
+    ZeroWaste-f is the full version with fine-grained annotations.
+    Segmentation masks are used to derive tight bounding boxes.
+    Only the 4 top-level recycling categories are provided;
+    sub-type cannot be inferred — mapped to most representative SPIRO class.
+
+mappings:
+  "rigid_plastic":      {spiro_ids: [10],  notes: "plastic container as representative rigid plastic"}
+  "cardboard":          {spiro_ids: [36],  notes: "cardboard box"}
+  "metals_and_foil":    {spiro_ids: [31],  notes: "metal foil as representative; may also be can"}
+  "soft_plastics":      {spiro_ids: [3],   notes: "plastic film as representative soft plastic"}
+  # Background class — skip
+  "background":         {spiro_ids: [],    notes: "excluded"}
+
+excluded: ["background"]

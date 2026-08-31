@@ -1,0 +1,32 @@
+# =============================================================================
+# SPIRO Dataset — YOLO Format Configuration
+# Consumed directly by Ultralytics training pipeline
+# =============================================================================
+
+path: datasets/processed       # root directory (relative to repo root)
+train: train/images
+val: val/images
+test: test/images
+
+# Number of classes
+nc: 5
+
+# Class names (must match order in annotation files)
+names:
+  0: object_a
+  1: object_b
+  2: object_c
+  3: object_d
+  4: object_e
+
+# Optional: class weights for imbalanced datasets
+# class_weights: [1.0, 1.5, 2.0, 1.0, 0.8]
+
+# Dataset statistics (populated by dataset_manager.py after analysis)
+stats:
+  total_images: 0
+  total_labels: 0
+  train_images: 0
+  val_images: 0
+  test_images: 0
+  class_distribution: {}

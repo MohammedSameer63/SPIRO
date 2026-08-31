@@ -1,0 +1,23 @@
+# =============================================================================
+# SPIRO — YOLOv11-nano experiment (fast baseline)
+# =============================================================================
+_base_: "./yolov11_training.yaml"
+
+experiment:
+  name: "spiro_yolo11n"
+  tags: ["yolov11n", "nano", "baseline"]
+
+model:
+  weights: "yolo11n.pt"
+
+training:
+  epochs: 300
+  batch_size: 64
+  patience: 50
+
+optimizer:
+  lr0: 0.01
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.0

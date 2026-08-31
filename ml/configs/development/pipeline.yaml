@@ -1,0 +1,92 @@
+pipeline:
+  name: "spiro_development"
+  version: "1.0.0"
+
+models:
+  yolo_onnx: "models/exports/spiro_yolov11s_best.onnx"
+  effnet_onnx: "models/exports/spiro_effnetv2_s_best_effnet.onnx"
+  yolo_input_size: 640
+  effnet_input_size: 300
+  num_classes: 109
+
+runtime:
+  providers: ["CPUExecutionProvider"]
+  yolo_threads: 2
+  effnet_threads: 2
+  graph_optimization: "ORT_ENABLE_BASIC"
+  enable_mem_pattern: true
+  enable_cpu_mem_arena: true
+  fp16: false
+  yolo_batch: 1
+  effnet_batch: 4
+  warmup_runs: 1
+
+preprocessing:
+  max_file_size_mb: 100
+  supported_formats: ["jpg", "jpeg", "png", "bmp", "webp", "tiff"]
+  min_resolution: [32, 32]
+  max_resolution: [8192, 8192]
+  blur_detection: false
+  blur_threshold: 0.0
+  brightness_min: 0.0
+  brightness_max: 255.0
+  quality_score_threshold: 0.0
+  auto_orient: true
+  target_size: 640
+  letterbox_color: [114, 114, 114]
+  normalize: true
+
+detection:
+  conf_threshold: 0.15
+  iou_threshold: 0.45
+  max_detections: 100
+  min_bbox_area: 0.001
+  agnostic_nms: false
+
+cropping:
+  padding_fraction: 0.08
+  min_crop_pixels: 8
+
+verification:
+  enabled: true
+  top_k: 5
+  temperature: 1.0
+
+fusion:
+  method: "weighted_average"
+  yolo_weight: 0.45
+  effnet_weight: 0.55
+  min_final_confidence: 0.1
+
+contamination:
+  enabled: true
+  food_residue_classes: [47, 48, 49, 50, 51, 52]
+  hazardous_classes: [61, 66, 67, 82, 83, 84]
+  sanitary_classes: [59, 60, 66, 69, 70]
+  wet_indicator_threshold: 0.6
+  mixed_waste_penalty: 0.3
+
+guidance:
+  # 7 streams: organic, recoverable, non_recoverable, hazardous, sanitary, e_waste, reject
+  enabled: true
+  language: "en"
+  include_collection_point: true
+  include_warnings: true
+  include_preparation_steps: true
+
+explainability:
+  enabled: true
+  gradcam: false
+  save_visualizations: true
+  visualization_dir: "reports/pipeline_viz"
+  include_reasoning_chain: true
+
+output:
+  include_probabilities: true
+  include_timings: true
+  include_model_versions: true
+  pretty_json: true
+
+performance:
+  benchmark_n_runs: 10
+  log_slow_threshold_ms: 60000
