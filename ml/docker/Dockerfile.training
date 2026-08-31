@@ -1,0 +1,41 @@
+# SPIRO ML — Training Dockerfile
+# Full training environment with GPU support
+# Usage:
+#   docker build -f docker/Dockerfile.training -t spiro-ml-training:latest .
+#   docker run --gpus all -v $(pwd):/workspace spiro-ml-training:latest \
+#       python training/trainer.py --variant s
+
+FROM nvidia/cuda:12.1.1-cudnn8-devel-ubuntu22.04
+
+LABEL description="SPIRO ML Training Environment"
+ENV DEBIAN_FRONTEND=noninteractive
+WORKDIR /workspace
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 python3.11-dev python3-pip \
+    build-essential git curl wget \
+    libgomp1 libglib2.0-0 libsm6 libxext6 libxrender-dev \
+    libgl1-mesa-glx \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN ln -s /usr/bin/python3.11 /usr/bin/python && \
+    ln -s /usr/bin/pip3 /usr/bin/pip
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir \
+    torch==2.3.1 torchvision \
+    ultralytics \
+    timm \
+    onnx onnxruntime-gpu==1.18.1 onnxsim onnxconverter-common \
+    albumentations \
+    mlflow tensorboard \
+    scipy scikit-learn pandas matplotlib seaborn \
+    psutil tqdm rich \
+    && pip install --no-cache-dir -r requirements.txt
+
+ENV PYTHONPATH=/workspace/src
+ENV SPIRO_ENV=training
+VOLUME ["/workspace/datasets", "/workspace/models", "/workspace/logs"]
+
+CMD ["python", "training/trainer.py", "--list-variants"]

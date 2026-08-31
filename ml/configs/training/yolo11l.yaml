@@ -1,0 +1,27 @@
+# =============================================================================
+# SPIRO — YOLOv11-large experiment
+# =============================================================================
+_base_: "./yolov11_training.yaml"
+
+experiment:
+  name: "spiro_yolo11l"
+  tags: ["yolov11l", "large"]
+
+model:
+  weights: "yolo11l.pt"
+
+training:
+  epochs: 300
+  batch_size: 8
+  patience: 50
+  amp: true
+  gradient_accumulation: 2   # effective batch = 16
+
+optimizer:
+  lr0: 0.01
+  weight_decay: 0.0005
+
+augmentation:
+  mosaic: 1.0
+  mixup: 0.15
+  copy_paste: 0.3

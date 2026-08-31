@@ -1,0 +1,35 @@
+# =============================================================================
+# Experiment: EfficientNetV2 Classifier
+# =============================================================================
+
+_base_: "../base_config.yaml"
+
+experiment:
+  name: "efficientnetv2_classifier"
+  tags: ["efficientnetv2", "classification"]
+  notes: "EfficientNetV2-S fine-tuned for SPIRO classification task"
+
+model:
+  architecture: "efficientnetv2"
+  task: "classify"
+
+efficientnetv2:
+  variant: "tf_efficientnetv2_s"
+  pretrained: true
+  drop_rate: 0.3
+  num_classes: 5
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.001
+  optimizer: "AdamW"
+  lr_scheduler: "cosine"
+  warmup_epochs: 5
+  device: "auto"
+
+augmentation:
+  mosaic: 0.0
+  mixup: 0.1
+  horizontal_flip: 0.5
+  color_prob: 0.5

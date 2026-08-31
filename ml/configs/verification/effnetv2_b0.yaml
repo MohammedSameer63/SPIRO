@@ -1,0 +1,11 @@
+# EfficientNetV2-B0 (smallest, 192px, fastest)
+_base_: "./effnetv2_verify.yaml"
+experiment:
+  name: "spiro_effnetv2_b0"
+model:
+  variant: "efficientnetv2_b0"
+  input_size: 192
+training:
+  batch_size: 64
+  phase1_epochs: 5
+  phase2_epochs: 20

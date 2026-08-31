@@ -1,0 +1,175 @@
+# =============================================================================
+# SPIRO ML — EfficientNetV2 Verification Pipeline Configuration
+# Second-stage verifier that runs after YOLOv11 detection.
+# =============================================================================
+
+experiment:
+  name: "spiro_effnetv2_s"
+  project: "spiro_verification"
+  tags: ["efficientnetv2", "verification", "second_stage"]
+  notes: ""
+  seed: 42
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+model:
+  # One of: efficientnetv2_b0 | efficientnetv2_b1 | efficientnetv2_b2 |
+  #         efficientnetv2_b3 | efficientnetv2_s  | efficientnetv2_m  | efficientnetv2_l
+  variant: "efficientnetv2_s"
+  # timm model string (auto-resolved from variant if null)
+  timm_name: null
+  num_classes: 109
+  pretrained: true
+  drop_rate: 0.2
+  drop_path_rate: 0.2
+  global_pool: "avg"
+  # Input size per variant (auto-set if null)
+  input_size: null    # null = auto from variant: b0=192,b1=240,b2=260,b3=300,s=300,m=384,l=480
+
+# ── Dataset ───────────────────────────────────────────────────────────────────
+dataset:
+  root: "datasets/processed"          # train/ val/ test/ splits
+  crop_dir: "datasets/crops"          # per-class cropped patches (from detection)
+  workers: 8
+  pin_memory: true
+  class_names_file: null              # null = load from taxonomy
+  # Imbalance handling
+  use_weighted_sampler: true
+  oversample_rare_classes: true
+  min_samples_per_class: 10
+
+# ── Training ──────────────────────────────────────────────────────────────────
+training:
+  epochs: 50
+  batch_size: 32
+  device: "auto"
+  amp: true
+  gradient_accumulation: 1
+  patience: 15
+  save_period: 5
+  val_period: 1
+  resume: false
+  resume_checkpoint: null
+  deterministic: true
+  num_workers: 8
+  # Two-phase training
+  phase1_epochs: 10       # freeze backbone, train head only
+  phase2_epochs: 40       # unfreeze and fine-tune
+
+# ── Optimizer ─────────────────────────────────────────────────────────────────
+optimizer:
+  name: "AdamW"            # AdamW | Adam | SGD
+  lr0: 0.001               # initial LR (phase 2)
+  lr_head: 0.005           # head LR (phase 1)
+  lrf: 0.01                # final LR factor
+  weight_decay: 0.0001
+  momentum: 0.9            # SGD only
+  betas: [0.9, 0.999]      # Adam/AdamW
+
+# ── Scheduler ─────────────────────────────────────────────────────────────────
+scheduler:
+  name: "cosine"           # cosine | step | plateau
+  warmup_epochs: 3
+  step_size: 10            # step scheduler step
+  step_gamma: 0.1
+
+# ── Loss ──────────────────────────────────────────────────────────────────────
+loss:
+  name: "label_smoothing"  # cross_entropy | label_smoothing | focal | weighted
+  label_smoothing: 0.1     # for label_smoothing mode
+  focal_gamma: 2.0         # for focal mode
+  focal_alpha: null        # null = uniform; list of 109 floats for per-class
+  class_weights: null      # null = uniform; auto-computed if use_weighted_sampler
+
+# ── Augmentation ──────────────────────────────────────────────────────────────
+augmentation:
+  enabled: true
+  # Geometric
+  random_crop: true
+  crop_scale: [0.7, 1.0]
+  crop_ratio: [0.75, 1.33]
+  horizontal_flip: 0.5
+  vertical_flip: 0.0
+  rotation_degrees: 20
+  perspective_distortion: 0.2
+  # Color
+  brightness: 0.3
+  contrast: 0.3
+  saturation: 0.3
+  hue: 0.1
+  color_jitter_prob: 0.5
+  grayscale_prob: 0.05
+  # Filtering
+  blur_prob: 0.1
+  blur_kernel: [3, 7]
+  clahe_prob: 0.2
+  clahe_clip_limit: 4.0
+  noise_prob: 0.1
+  noise_var: [10, 50]
+  # Dropout / Erasing
+  cutout_prob: 0.3
+  cutout_holes: 8
+  cutout_max_size: 32
+  random_erasing_prob: 0.2
+  random_erasing_scale: [0.02, 0.2]
+  # Test-time augmentation (TTA)
+  tta_enabled: false
+  tta_n: 5
+
+# ── Validation / Evaluation ───────────────────────────────────────────────────
+evaluation:
+  conf_threshold: 0.3
+  top_k: 5               # top-k accuracy
+  save_confusion_matrix: true
+  save_classification_report: true
+  save_roc_curves: true
+  save_per_class_accuracy: true
+  misclassified_samples: 20  # save N misclassified images
+
+# ── Checkpoint ────────────────────────────────────────────────────────────────
+checkpoint:
+  dir: "models/verification_checkpoints"
+  best_metric: "top1_accuracy"
+  save_best: true
+  save_last: true
+
+# ── ONNX Export ───────────────────────────────────────────────────────────────
+export:
+  auto_export_onnx: true
+  opset: 17
+  dynamic_axes: true
+  simplify: true
+  half: false
+  verify: true
+  output_dir: "models/exports"
+
+# ── Confidence Fusion ─────────────────────────────────────────────────────────
+fusion:
+  method: "weighted_average"   # weighted_average | geometric_mean | harmonic_mean | bayesian | temperature
+  yolo_weight: 0.4             # weight for YOLOv11 confidence
+  effnet_weight: 0.6           # weight for EfficientNetV2 confidence
+  temperature: 1.5             # temperature scaling T (>1 = softer, <1 = sharper)
+  bayesian_prior: null         # null = uniform; path to class_priors.json
+  min_confidence: 0.2          # below this → "uncertain" label
+
+# ── Explainability ────────────────────────────────────────────────────────────
+explainability:
+  enabled: true
+  method: "gradcam"           # gradcam | gradcam++ | scorecam
+  target_layer: null          # null = auto-detect last conv layer
+  # Outputs
+  save_heatmaps: true
+  overlay_alpha: 0.5
+  colormap: "jet"
+  output_dir: "reports/gradcam"
+  # Per-inference explainability
+  explain_on_inference: false  # set true to generate CAM for every prediction
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  tensorboard: true
+  csv: true
+  console: true
+  log_dir: "logs/verification"
+  tensorboard_dir: "logs/verification/tensorboard"
+  csv_path: "logs/verification/training_history.csv"
+  verbose: true

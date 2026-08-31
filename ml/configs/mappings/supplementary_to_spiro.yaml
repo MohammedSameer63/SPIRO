@@ -1,0 +1,62 @@
+# =============================================================================
+# MJU-Waste → SPIRO Mapping
+# Source: MJU-Waste (Minjiang University Waste Dataset)
+# License: CC BY-NC 4.0
+# URL: https://github.com/realwecan/mju-waste/
+# Citation: Wang, T. et al. (2020). A Multi-Level Approach to Waste Object
+#           Segmentation. Sensors, 20(14), 3816.
+# Classes: 5 (unlabeled, rigid_plastic, cardboard, soft_plastic, metals_foils)
+# Annotation: COCO instance segmentation
+# =============================================================================
+
+dataset:
+  name: MJU-Waste
+  version: "1.0"
+  license: "CC BY-NC 4.0"
+  homepage: "https://github.com/realwecan/mju-waste"
+  paper: "https://doi.org/10.3390/s20143816"
+  annotation_format: COCO
+  has_segmentation: true
+  checksum_file: "mju_checksums.json"
+  notes: >
+    MJU-Waste covers bin-level recycling categories, similar to ZeroWaste.
+    Segmentation masks converted to tight bounding boxes.
+
+mappings:
+  "rigid_plastic":    {spiro_ids: [10],  notes: "plastic container"}
+  "cardboard":        {spiro_ids: [36],  notes: "cardboard box"}
+  "soft_plastic":     {spiro_ids: [3],   notes: "plastic film"}
+  "metals_foils":     {spiro_ids: [31],  notes: "metal foil"}
+  "unlabeled":        {spiro_ids: [],    notes: "excluded"}
+
+excluded: ["unlabeled"]
+
+---
+# =============================================================================
+# WADE-ai (Waste Detection dataset) → SPIRO Mapping
+# Source: wade-ai on Roboflow Universe
+# License: CC BY 4.0
+# URL: https://universe.roboflow.com/wade-ai/waste-detection-12h3l
+# Classes: bottle, can, cup, lid, cardboard, plastic_bag, straw
+# Annotation: YOLO bounding boxes
+# =============================================================================
+
+# NOTE: This file contains two dataset configs separated by ---
+# The dataset_merger reads both and processes them independently.
+
+dataset_wade:
+  name: WADE-ai
+  version: "2022"
+  license: "CC BY 4.0"
+  homepage: "https://universe.roboflow.com/wade-ai/waste-detection-12h3l"
+  annotation_format: YOLO
+  checksum_file: "wade_checksums.json"
+
+mappings_wade:
+  "bottle":       {spiro_ids: [0],  notes: "plastic bottle (most common)"}
+  "can":          {spiro_ids: [27], notes: "metal can beverage"}
+  "cup":          {spiro_ids: [5],  notes: "plastic cup"}
+  "lid":          {spiro_ids: [6],  notes: "plastic lid"}
+  "cardboard":    {spiro_ids: [36], notes: "cardboard box"}
+  "plastic_bag":  {spiro_ids: [2],  notes: "plastic bag"}
+  "straw":        {spiro_ids: [4],  notes: "plastic straw"}

@@ -1,0 +1,101 @@
+pipeline:
+  name: "spiro_production"
+  version: "1.0.0"
+  description: "SPIRO production — optimised for throughput and stability"
+
+models:
+  yolo_onnx: "models/serve/yolo_active.onnx"
+  effnet_onnx: "models/serve/effnet_active.onnx"
+  yolo_input_size: 640
+  effnet_input_size: 300
+  num_classes: 109
+
+runtime:
+  providers: ["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"]
+  yolo_threads: 4
+  effnet_threads: 4
+  graph_optimization: "ORT_ENABLE_ALL"
+  enable_mem_pattern: true
+  enable_cpu_mem_arena: true
+  fp16: false
+  yolo_batch: 1
+  effnet_batch: 16
+  warmup_runs: 10
+
+preprocessing:
+  max_file_size_mb: 50
+  supported_formats: ["jpg", "jpeg", "png", "bmp", "webp", "tiff"]
+  min_resolution: [64, 64]
+  max_resolution: [8192, 8192]
+  blur_detection: true
+  blur_threshold: 80.0
+  brightness_min: 20.0
+  brightness_max: 245.0
+  quality_score_threshold: 0.3
+  auto_orient: true
+  target_size: 640
+  letterbox_color: [114, 114, 114]
+  normalize: true
+
+detection:
+  conf_threshold: 0.30
+  iou_threshold: 0.45
+  max_detections: 50
+  min_bbox_area: 0.001
+  agnostic_nms: false
+
+cropping:
+  padding_fraction: 0.08
+  min_crop_pixels: 16
+
+verification:
+  enabled: true
+  top_k: 5
+  temperature: 1.0
+
+fusion:
+  method: "weighted_average"
+  yolo_weight: 0.45
+  effnet_weight: 0.55
+  min_final_confidence: 0.30
+
+contamination:
+  enabled: true
+  food_residue_classes: [47, 48, 49, 50, 51, 52]
+  hazardous_classes: [61, 66, 67, 82, 83, 84]
+  sanitary_classes: [59, 60, 66, 69, 70]
+  wet_indicator_threshold: 0.6
+  mixed_waste_penalty: 0.3
+
+guidance:
+  enabled: true
+  language: "en"
+  include_collection_point: true
+  include_warnings: true
+  include_preparation_steps: true
+  # 7 disposal streams (all 109 classes map to exactly one)
+  streams:
+    - organic          # food/garden/biodegradable → green/compost bin
+    - recoverable      # clean recyclables (plastic/glass/metal/paper) → blue bin
+    - non_recoverable  # contaminated/mixed/residual → black/general bin
+    - hazardous        # chemicals/aerosols/paint → hazardous collection point
+    - sanitary         # medical/hygiene/bodily → sealed sanitary bin
+    - e_waste          # electronics/batteries → e-waste collection point
+    - reject           # unknown/unclassifiable → manual inspection
+
+explainability:
+  enabled: true
+  gradcam: false
+  save_visualizations: false
+  visualization_dir: "reports/pipeline_viz"
+  include_reasoning_chain: true
+
+output:
+  include_probabilities: false
+  include_timings: true
+  include_model_versions: true
+  pretty_json: false
+
+performance:
+  benchmark_n_runs: 100
+  log_slow_threshold_ms: 300
