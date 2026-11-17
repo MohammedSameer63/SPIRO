@@ -1,0 +1,18 @@
+# Virtualenv / caches
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local dev artefacts — never bake into the image
+.env
+uploads/
+*.pt
+*.pth
+
+# Dev-only helpers / docs
+tests/
+docs/
+README.md
+export_yolo_onnx.py

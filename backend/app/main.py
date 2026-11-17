@@ -21,6 +21,7 @@ from app.core.exceptions import (
     WorkerNotFoundError,
     WorkerWardAlreadyExistsError,
     WorkerWardAssignmentNotFoundError,
+    InvalidQrPayloadError,
 )
 
 from app.api.routes.waste_category import (
@@ -44,11 +45,41 @@ from app.api.routes.ward import router as ward_router
 from app.api.routes.auth import router as auth_router
 from app.api.routes.integration import router as integration_router
 from app.core.config import settings
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Ensure the upload directory exists (StaticFiles mount fails otherwise,
+    # e.g. fresh container where only a persistent volume is mounted).
+    try:
+        Path(settings.upload_dir, "reports").mkdir(
+            parents=True, exist_ok=True
+        )
+    except Exception as e:
+        print(f"Could not create upload directory: {e}")
+    # Preload the YOLO ONNX model so the first citizen report does not
+    # pay the 2-3s load cost (and failures surface at startup, not per-request).
+    try:
+        from app.services.ml_inference_service import ml_inference_service
+
+        ml_inference_service.initialize()
+    except Exception as e:
+        print(f"ML inference preloading failed (will retry lazily): {e}")
+    yield
+
 
 app = FastAPI(
     title=settings.project_name,
     version=settings.api_version,
+    lifespan=lifespan,
 )
+
+# Created here (not only in lifespan) because the StaticFiles mount below
+# resolves at import time and raises if the directory is missing — e.g.
+# when the server is started from a different working directory.
+Path(settings.upload_dir, "reports").mkdir(parents=True, exist_ok=True)
 
 app.mount(
     "/uploads",
@@ -59,9 +90,11 @@ app.mount(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+        origin.strip()
+        for origin in settings.cors_origins.split(",")
+        if origin.strip()
     ],
+    allow_origin_regex=settings.cors_origin_regex or None,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -264,6 +297,17 @@ async def worker_ward_assignment_not_found_handler(
 ):
     return JSONResponse(
         status_code=404,
+        content={"detail": str(exc)},
+    )
+
+
+@app.exception_handler(InvalidQrPayloadError)
+async def invalid_qr_payload_handler(
+    request: Request,
+    exc: InvalidQrPayloadError,
+):
+    return JSONResponse(
+        status_code=400,
         content={"detail": str(exc)},
     )
 

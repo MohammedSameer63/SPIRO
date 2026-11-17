@@ -1,0 +1,61 @@
+# ============================================================
+# SPIRO — simple production-style deployment
+# Frontend is static hosting (see docs/DEPLOYMENT.md).
+# This file runs: PostgreSQL + FastAPI backend (with ML inside).
+#
+# Usage:
+#   cp backend/.env.example backend/.env   # then set secrets + passwords
+#   docker compose up --build -d
+#   docker compose exec api python -c "..."  # or psql: init schema below
+#
+# First-time database setup (schema + seed):
+#   psql $DATABASE_URL -f backend/database/schema.sql
+#   psql $DATABASE_URL -f backend/database/seed.sql
+# ============================================================
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-spiro}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-spiro}
+      POSTGRES_DB: ${DB_NAME:-spiro}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-spiro}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      # Point the backend at the composed database.
+      # (Overrides DATABASE_URL from backend/.env when set here.)
+      DATABASE_URL: postgresql://${DB_USER:-spiro}:${DB_PASSWORD:-spiro}@db:5432/${DB_NAME:-spiro}
+    ports:
+      - "${API_PORT:-8000}:8000"
+    volumes:
+      # Persistent storage for uploaded report images.
+      # Without this, images vanish when the container is replaced.
+      - uploads:/srv/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\""]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  pgdata:
+  uploads:

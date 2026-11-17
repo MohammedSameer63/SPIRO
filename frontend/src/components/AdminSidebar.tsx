@@ -1,116 +1,28 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import {
+  Brain,
+  CalendarDays,
+  LayoutDashboard,
+  ScrollText,
+  Users,
+} from "lucide-react";
+import { AppSidebar } from "./AppSidebar";
+import { COLORS } from "../theme";
 
 function AdminSidebar() {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    localStorage.removeItem("role");
-    navigate("/login");
-  };
-
   return (
-    <aside style={styles.sidebar}>
-
-      <div>
-        <h2 style={styles.logo}>
-          SPIRO
-        </h2>
-
-        <p style={styles.subtitle}>
-          Admin Portal
-        </p>
-      </div>
-
-      <nav style={styles.nav}>
-
-        <NavLink
-          to="/admin/dashboard"
-          style={linkStyle}
-        >
-          📊 Dashboard
-        </NavLink>
-
-        <NavLink
-          to="/admin/workers"
-          style={linkStyle}
-        >
-          👷 Workers
-        </NavLink>
-
-        <NavLink
-          to="/admin/schedules"
-          style={linkStyle}
-        >
-          📅 Schedules
-        </NavLink>
-
-      </nav>
-
-      <button
-        onClick={handleLogout}
-        style={styles.logout}
-      >
-        🚪 Logout
-      </button>
-
-    </aside>
+    <AppSidebar
+      title="SPIRO"
+      subtitle="Admin Portal"
+      accent={COLORS.aPurple}
+      links={[
+        { to: "/admin/dashboard", label: "Overview", icon: <LayoutDashboard size={17} /> },
+        { to: "/admin/audit", label: "Audit Trail", icon: <ScrollText size={17} /> },
+        { to: "/admin/workers", label: "Workers", icon: <Users size={17} /> },
+        { to: "/admin/schedules", label: "Schedules", icon: <CalendarDays size={17} /> },
+        { to: "/admin/ml", label: "AI / ML", icon: <Brain size={17} /> },
+      ]}
+    />
   );
 }
-
-const linkStyle = ({
-  isActive,
-}: {
-  isActive: boolean;
-}) => ({
-  display: "block",
-  padding: "12px 15px",
-  marginBottom: "8px",
-  borderRadius: "8px",
-  textDecoration: "none",
-  color: isActive ? "white" : "#374151",
-  background: isActive
-    ? "#15803d"
-    : "transparent",
-});
-
-const styles = {
-  sidebar: {
-    width: "240px",
-    minHeight: "100vh",
-    padding: "25px 15px",
-    background: "#ffffff",
-    borderRight: "1px solid #e5e7eb",
-    display: "flex",
-    flexDirection: "column" as const,
-  },
-
-  logo: {
-    color: "#15803d",
-    margin: 0,
-  },
-
-  subtitle: {
-    color: "#6b7280",
-    fontSize: "13px",
-    marginTop: "5px",
-  },
-
-  nav: {
-    marginTop: "40px",
-    flex: 1,
-  },
-
-  logout: {
-    padding: "12px",
-    border: "none",
-    borderRadius: "8px",
-    background: "#dc2626",
-    color: "white",
-    fontSize: "15px",
-    cursor: "pointer",
-  },
-};
 
 export default AdminSidebar;

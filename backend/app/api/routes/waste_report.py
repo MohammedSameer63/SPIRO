@@ -3,7 +3,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_current_user
@@ -102,6 +102,35 @@ def get_my_reports(
     return service.get_my_reports(
         current_user=current_user
     )
+
+@router.post(
+    "/{report_id}/analyze",
+    response_model=WasteReportResponse,
+)
+def analyze_report(
+    report_id: UUID,
+    current_user: User = Depends(get_current_user),
+    service: WasteReportService = Depends(
+        get_waste_report_service
+    ),
+):
+    """
+    (Re-)run AI analysis for one of the citizen's reports right now.
+    Used when a report shows no AI result (e.g. the model found nothing
+    at submit time). Idempotent: reports that already have a prediction
+    are returned unchanged.
+    """
+    try:
+        return service.analyze_report(
+            report_id=report_id,
+            current_user=current_user,
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=str(exc),
+        )
+
 
 @router.get(
     "/{report_id}",

@@ -65,3 +65,7 @@ class WorkerNotFoundError(Exception):
     Raised when the specified worker does not exist.
     """
     pass
+
+class InvalidQrPayloadError(Exception):
+    """Raised when a scanned QR payload is invalid or mismatched."""
+    pass

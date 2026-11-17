@@ -1,4 +1,13 @@
 import { useEffect, useState } from "react";
+import { Users } from "lucide-react";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  PageHeader,
+  Pill,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 import {
   getAdminWorkers,
@@ -183,69 +192,73 @@ function Workers() {
 
   if (loading) {
     return (
-      <div>
-        <h1>Worker Management</h1>
-        <p>Loading workers...</p>
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Worker Management" />
+        <p style={{ color: COLORS.g500 }}>Loading workers…</p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div>
-        <h1>Worker Management</h1>
-
-        <div style={styles.error}>
-          {error}
-
-          <button
-            onClick={loadData}
-            style={styles.retry}
-          >
-            Retry
-          </button>
-        </div>
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Worker Management" />
+        <EmptyState
+          icon={<Users size={40} />}
+          title="Couldn't load workers"
+          hint={error}
+          action={<Btn onClick={loadData}>Retry</Btn>}
+        />
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>
-        Worker Management
-      </h1>
-
-      <p style={styles.subtitle}>
-        Manage workers and their ward queues.
-      </p>
+    <div style={{ fontFamily: font, maxWidth: 1120 }}>
+      <PageHeader
+        title="Worker Management"
+        subtitle="Manage workers and their ward queues"
+      />
 
       <div style={styles.container}>
         {workers.length === 0 ? (
-          <div style={styles.empty}>
-            No workers found.
-          </div>
+          <EmptyState
+            icon={<Users size={40} />}
+            title="No workers found"
+          />
         ) : (
           workers.map((worker) => (
-            <div
+            <Card
               key={worker.id}
               style={styles.card}
             >
               <div style={styles.header}>
                 <div>
-                  <h2>
+                  <div style={styles.name}>
                     {worker.name}
-                  </h2>
+                  </div>
 
                   <p style={styles.email}>
                     {worker.email}
                   </p>
 
-                  <p style={styles.status}>
-                    Status: {worker.status}
-                  </p>
+                  <Pill
+                    color={
+                      worker.status === "ACTIVE"
+                        ? COLORS.cGreen
+                        : COLORS.g500
+                    }
+                    bg={
+                      worker.status === "ACTIVE"
+                        ? COLORS.cGreenL
+                        : COLORS.g100
+                    }
+                  >
+                    {worker.status}
+                  </Pill>
                 </div>
 
-                <button
+                <Btn
                   onClick={() => {
                     if (
                       selectedWorker ===
@@ -259,20 +272,19 @@ function Workers() {
                       setSelectedWard("");
                     }
                   }}
-                  style={styles.button}
                 >
                   {selectedWorker ===
                   worker.id
                     ? "Close"
                     : "Manage"}
-                </button>
+                </Btn>
               </div>
 
               {/* Assigned Wards */}
 
-              <h3>
+              <div style={styles.sectionTitle}>
                 Assigned Wards
-              </h3>
+              </div>
 
               {worker.wards.length ===
               0 ? (
@@ -330,9 +342,9 @@ function Workers() {
                 <div style={styles.panel}>
                   {/* Assign Ward */}
 
-                  <h3>
+                  <div style={styles.sectionTitle}>
                     Assign Ward
-                  </h3>
+                  </div>
 
                   <select
                     value={selectedWard}
@@ -374,35 +386,33 @@ function Workers() {
                     )}
                   </select>
 
-                  <button
-                    onClick={
-                      handleAssignWard
-                    }
-                    disabled={
-                      assigningWard
-                    }
-                    style={
-                      styles.confirm
-                    }
-                  >
-                    {assigningWard
-                      ? "Assigning..."
-                      : "Assign Ward"}
-                  </button>
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <Btn
+                      onClick={
+                        handleAssignWard
+                      }
+                      disabled={
+                        assigningWard
+                      }
+                    >
+                      {assigningWard
+                        ? "Assigning..."
+                        : "Assign Ward"}
+                    </Btn>
 
-                  <button
-                    onClick={
-                      closeWorkerPanel
-                    }
-                    style={
-                      styles.cancel
-                    }
-                  >
-                    Close
-                  </button>
+                    <Btn
+                      onClick={
+                        closeWorkerPanel
+                      }
+                      variant="ghost"
+                      color={COLORS.g500}
+                    >
+                      Close
+                    </Btn>
+                  </div>
                 </div>
               )}
-            </div>
+            </Card>
           ))
         )}
       </div>
@@ -411,165 +421,97 @@ function Workers() {
 }
 
 const styles = {
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "25px",
-  },
-
   container: {
-    maxWidth: "950px",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "20px",
+    maxWidth: 1120,
+    display: "grid",
+    gridTemplateColumns:
+      "repeat(auto-fill, minmax(340px, 1fr))",
+    gap: 12,
   },
 
   card: {
-    background: "white",
-    padding: "25px",
-    borderRadius: "12px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
+    padding: 20,
   },
 
   header: {
     display: "flex",
-    justifyContent:
-      "space-between",
-    alignItems: "center",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 10,
+  },
+
+  name: {
+    fontSize: 16,
+    fontWeight: 800,
+    color: COLORS.g900,
   },
 
   email: {
-    color: "#6b7280",
-    margin: "5px 0",
+    color: COLORS.g500,
+    margin: "5px 0 8px",
+    fontSize: 12,
   },
 
-  status: {
-    color: "#6b7280",
-    fontSize: "13px",
-  },
-
-  button: {
-    padding: "10px 16px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: COLORS.g900,
+    margin: "14px 0 8px",
   },
 
   ward: {
     display: "inline-block",
-    padding: "8px 12px",
-    marginRight: "8px",
-    marginBottom: "8px",
-    background: "#dcfce7",
-    color: "#166534",
-    borderRadius: "20px",
+    padding: "6px 12px",
+    marginRight: 8,
+    marginBottom: 8,
+    background: COLORS.aPurpleL,
+    color: COLORS.aPurple,
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 600,
   },
 
   removeWard: {
-    marginLeft: "8px",
-    padding: "0",
+    marginLeft: 8,
+    padding: 0,
     border: "none",
     background: "transparent",
-    color: "#166534",
+    color: COLORS.aPurple,
     cursor: "pointer",
-    fontSize: "16px",
-    lineHeight: "1",
+    fontSize: 16,
+    lineHeight: 1,
   },
 
   noWard: {
-    color: "#9ca3af",
+    color: COLORS.g400,
+    fontSize: 13,
   },
 
   count: {
-    color: "#6b7280",
-    fontSize: "13px",
+    color: COLORS.g500,
+    fontSize: 12,
+    marginTop: 8,
   },
 
   panel: {
-    marginTop: "20px",
-    padding: "20px",
-    background: "#f0fdf4",
-    borderRadius: "10px",
-    border:
-      "1px solid #bbf7d0",
+    marginTop: 16,
+    padding: 16,
+    background: COLORS.g50,
+    borderRadius: 10,
+    border: `1px solid ${COLORS.g200}`,
   },
 
   select: {
     display: "block",
     width: "100%",
-    maxWidth: "600px",
-    padding: "10px",
-    marginTop: "8px",
-    marginBottom: "15px",
-    borderRadius: "6px",
-    border:
-      "1px solid #d1d5db",
+    boxSizing: "border-box" as const,
+    padding: 10,
+    marginTop: 8,
+    marginBottom: 12,
+    borderRadius: 8,
+    border: `1px solid ${COLORS.g300}`,
     background: "white",
-  },
-
-  confirm: {
-    padding: "9px 18px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-    marginRight: "10px",
-  },
-
-  reportTitle: {
-    marginTop: "30px",
-  },
-
-  reportButton: {
-    padding: "9px 18px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#2563eb",
-    color: "white",
-    cursor: "pointer",
-    marginRight: "10px",
-  },
-
-  cancel: {
-    marginTop: "25px",
-    padding: "9px 18px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#6b7280",
-    color: "white",
-    cursor: "pointer",
-  },
-
-  noReports: {
-    color: "#6b7280",
-  },
-
-  empty: {
-    padding: "30px",
-    background: "white",
-    borderRadius: "10px",
-    textAlign: "center" as const,
-    color: "#6b7280",
-  },
-
-  error: {
-    padding: "15px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-  },
-
-  retry: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
+    fontSize: 14,
   },
 };
 

@@ -8,7 +8,12 @@ from app.core.database import get_db
 from app.models import User
 from app.repositories.household_repository import HouseholdRepository
 from app.schemas.household import HouseholdResponse
+from app.schemas.qr import HouseholdQrResponse
 from app.services.household_service import HouseholdService
+from app.services.qr_service import (
+    build_household_qr_payload,
+    qr_image_data_url,
+)
 
 
 router = APIRouter(
@@ -60,4 +65,37 @@ def get_household(
     return service.get_household_by_id(
         household_id=household_id,
         current_user=current_user,
+    )
+
+
+@router.get(
+    "/{household_id}/qr",
+    response_model=HouseholdQrResponse,
+    status_code=200,
+)
+def get_household_qr(
+    household_id: UUID,
+    current_user: User = Depends(get_current_user),
+    service: HouseholdService = Depends(
+        get_household_service
+    ),
+):
+    """
+    Return the signed QR code for a household.
+
+    Citizens see only their own household; workers and admins may fetch
+    any household (e.g. to reprint a code). The QR payload is HMAC-signed
+    and verified again when a worker scans it at pickup.
+    """
+    household = service.get_household_by_id(
+        household_id=household_id,
+        current_user=current_user,
+    )
+
+    payload = build_household_qr_payload(household.id)
+
+    return HouseholdQrResponse(
+        household_id=household.id,
+        qr_payload=payload,
+        qr_code=qr_image_data_url(payload),
     )

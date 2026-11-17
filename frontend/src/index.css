@@ -2,14 +2,35 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI",
+    sans-serif;
   background: #f4f7f5;
   color: #1f2937;
 }
 
 button {
   cursor: pointer;
+  font-family: inherit;
+}
+
+img {
+  max-width: 100%;
+}
+
+/* Mobile: native-feel scrolling + no iOS auto-zoom on form fields
+   (iOS zooms any input below 16px, breaking the layout). */
+@media (max-width: 860px) {
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  body {
+    overscroll-behavior-y: none;
+  }
 }

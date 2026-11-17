@@ -140,8 +140,8 @@ const styles = {
   },
 
   card: {
-    width: "400px",
-    padding: "40px",
+    width: "min(400px, calc(100vw - 32px))",
+    padding: "clamp(24px, 5vw, 40px)",
     background: "white",
     borderRadius: "12px",
     boxShadow: "0 10px 30px rgba(0,0,0,0.1)",

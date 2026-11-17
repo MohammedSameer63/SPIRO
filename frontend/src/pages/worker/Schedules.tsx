@@ -1,257 +1,119 @@
 import { useEffect, useState } from "react";
+import { CalendarDays, Clock } from "lucide-react";
 import { getWorkerSchedules } from "../../api/reports";
 import type { WorkerSchedule } from "../../api/reports";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  PageHeader,
+  WastePill,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 function Schedules() {
-  const [schedules, setSchedules] = useState<
-    WorkerSchedule[]
-  >([]);
-
+  const [schedules, setSchedules] =
+    useState<WorkerSchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     loadSchedules();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadSchedules() {
     try {
       setLoading(true);
       setError("");
-
-      const response =
-        await getWorkerSchedules();
-
-      if (response.success) {
-        setSchedules(response.data);
-      }
+      const response = await getWorkerSchedules();
+      if (response.success) setSchedules(response.data);
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to load collection schedules."
-      );
+      setError(err?.message || "Failed to load collection schedules.");
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <h1>Collection Schedules</h1>
-
-        <p style={styles.subtitle}>
-          View collection schedules for your
-          assigned wards.
-        </p>
-
-        <div style={styles.loading}>
-          Loading schedules...
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <div style={styles.header}>
-        <div>
-          <h1>
-            Collection Schedules
-          </h1>
+    <div style={{ fontFamily: font, maxWidth: 1120 }}>
+      <PageHeader
+        title="Collection Schedules"
+        subtitle="Pickup timetable for your assigned wards"
+        right={
+          <Btn size="sm" variant="ghost" onClick={loadSchedules}>
+            Refresh
+          </Btn>
+        }
+      />
 
-          <p style={styles.subtitle}>
-            View collection schedules for your
-            assigned wards.
-          </p>
-        </div>
+      {loading && <p style={{ color: COLORS.g500 }}>Loading schedules…</p>}
 
-        <button
-          onClick={loadSchedules}
-          style={styles.refresh}
-        >
-          Refresh
-        </button>
-      </div>
-
-      {error && (
-        <div style={styles.error}>
-          <span>{error}</span>
-
-          <button
-            onClick={loadSchedules}
-            style={styles.retry}
-          >
-            Retry
-          </button>
-        </div>
+      {!loading && error && (
+        <EmptyState
+          icon={<CalendarDays size={40} />}
+          title="Couldn't load schedules"
+          hint={error}
+          action={<Btn onClick={loadSchedules}>Retry</Btn>}
+        />
       )}
 
-      {schedules.length === 0 ? (
-        <div style={styles.empty}>
-          <h2>
-            No schedules assigned
-          </h2>
+      {!loading && !error && schedules.length === 0 && (
+        <EmptyState
+          icon={<CalendarDays size={40} />}
+          title="No schedules assigned"
+          hint="There are currently no collection schedules for your assigned wards."
+        />
+      )}
 
-          <p>
-            There are currently no collection
-            schedules for your assigned wards.
-          </p>
-        </div>
-      ) : (
-        <div style={styles.grid}>
-          {schedules.map((schedule) => (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {schedules.map((s) => (
+          <Card key={s.id} style={{ padding: 14 }}>
             <div
-              key={schedule.id}
-              style={styles.card}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "flex-start",
+                gap: 8,
+                marginBottom: 10,
+              }}
             >
-              <div style={styles.cardHeader}>
-                <h2 style={styles.ward}>
-                  {schedule.ward}
-                </h2>
-
-                <span style={styles.category}>
-                  {schedule.category}
-                </span>
-              </div>
-
-              <div style={styles.info}>
-                <div style={styles.row}>
-                  <strong>
-                    Day
-                  </strong>
-
-                  <span>
-                    {schedule.day}
-                  </span>
+              <div>
+                <div
+                  style={{ fontSize: 15, fontWeight: 800, color: COLORS.g900 }}
+                >
+                  {s.ward}
                 </div>
-
-                <div style={styles.row}>
-                  <strong>
-                    Collection Time
-                  </strong>
-
-                  <span>
-                    {schedule.startTime}
-                    {" - "}
-                    {schedule.endTime}
-                  </span>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: COLORS.g400,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 4,
+                    marginTop: 2,
+                  }}
+                >
+                  <Clock size={11} />
+                  {s.day} · {s.startTime} – {s.endTime}
                 </div>
               </div>
+              <WastePill category={s.category} />
             </div>
-          ))}
-        </div>
-      )}
+            <div style={{ fontSize: 12, color: COLORS.g600 }}>
+              {s.category} collection window
+            </div>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
-
-const styles = {
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "25px",
-  },
-
-  subtitle: {
-    color: "#6b7280",
-  },
-
-  refresh: {
-    padding: "10px 16px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-
-  loading: {
-    padding: "30px",
-    background: "white",
-    borderRadius: "10px",
-    color: "#6b7280",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(280px, 1fr))",
-    gap: "20px",
-  },
-
-  card: {
-    padding: "22px",
-    background: "white",
-    borderRadius: "12px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-  },
-
-  cardHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: "15px",
-    marginBottom: "20px",
-  },
-
-  ward: {
-    margin: 0,
-  },
-
-  category: {
-    padding: "6px 12px",
-    borderRadius: "20px",
-    background: "#dcfce7",
-    color: "#166534",
-    fontSize: "13px",
-    fontWeight: "bold",
-  },
-
-  info: {
-    borderTop:
-      "1px solid #e5e7eb",
-    paddingTop: "15px",
-  },
-
-  row: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: "20px",
-    padding: "10px 0",
-  },
-
-  empty: {
-    padding: "40px",
-    background: "white",
-    borderRadius: "12px",
-    textAlign: "center" as const,
-    color: "#6b7280",
-  },
-
-  error: {
-    display: "flex",
-    alignItems: "center",
-    padding: "15px",
-    marginBottom: "20px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-  },
-
-  retry: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-};
 
 export default Schedules;

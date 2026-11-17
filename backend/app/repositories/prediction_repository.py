@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models import Prediction
 from app.repositories.base_repository import BaseRepository
@@ -45,8 +46,10 @@ class PredictionRepository(BaseRepository):
         Retrieve the prediction associated with a report.
         """
 
-        stmt = select(Prediction).where(
-            Prediction.report_id == report_id
+        stmt = (
+            select(Prediction)
+            .options(selectinload(Prediction.category))
+            .where(Prediction.report_id == report_id)
         )
 
         result = self.db.execute(stmt)

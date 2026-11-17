@@ -8,6 +8,9 @@ from .collection_schedule import CollectionSchedule
 from .assignment import Assignment
 from .audit_log import AuditLog
 from .worker_ward import WorkerWard
+from .pickup_validation import PickupValidation
+from .coin_wallet import CoinWallet
+from .coin_transaction import CoinTransaction
 
 __all__ = [
     "User",
@@ -20,4 +23,7 @@ __all__ = [
     "Assignment"
     "AuditLog"
     "WorkerWard"
+    "PickupValidation"
+    "CoinWallet"
+    "CoinTransaction"
 ]

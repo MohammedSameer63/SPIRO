@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CalendarDays, Plus, Trash2 } from "lucide-react";
 
 import {
   getAdminSchedules,
@@ -13,6 +14,14 @@ import type {
   AdminWard,
   AdminWasteCategory,
 } from "../../api/admin";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  PageHeader,
+  WastePill,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 const days = [
   "Monday",
@@ -27,9 +36,7 @@ const days = [
 function Schedules() {
   const [schedules, setSchedules] = useState<AdminSchedule[]>([]);
   const [wards, setWards] = useState<AdminWard[]>([]);
-  const [categories, setCategories] = useState<
-    AdminWasteCategory[]
-  >([]);
+  const [categories, setCategories] = useState<AdminWasteCategory[]>([]);
 
   const [showForm, setShowForm] = useState(false);
 
@@ -45,588 +52,267 @@ function Schedules() {
 
   useEffect(() => {
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadData() {
     try {
       setLoading(true);
       setError("");
-
-      const [
-        schedulesResponse,
-        wardsResponse,
-        categoriesResponse,
-      ] = await Promise.all([
-        getAdminSchedules(),
-        getAdminWards(),
-        getAdminWasteCategories(),
-      ]);
-
-      if (schedulesResponse.success) {
-        setSchedules(schedulesResponse.data);
-      }
-
-      if (wardsResponse.success) {
-        setWards(wardsResponse.data);
-      }
-
-      if (categoriesResponse.success) {
-        setCategories(categoriesResponse.data);
-      }
+      const [schedulesResponse, wardsResponse, categoriesResponse] =
+        await Promise.all([
+          getAdminSchedules(),
+          getAdminWards(),
+          getAdminWasteCategories(),
+        ]);
+      if (schedulesResponse.success) setSchedules(schedulesResponse.data);
+      if (wardsResponse.success) setWards(wardsResponse.data);
+      if (categoriesResponse.success) setCategories(categoriesResponse.data);
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to load schedules."
-      );
+      setError(err?.message || "Failed to load schedules.");
     } finally {
       setLoading(false);
     }
   }
 
-  async function handleAddSchedule(
-    e: React.FormEvent
-  ) {
+  async function handleAddSchedule(e: React.FormEvent) {
     e.preventDefault();
-
-    if (
-      !wardId ||
-      !categoryId ||
-      !day ||
-      !startTime ||
-      !endTime
-    ) {
+    if (!wardId || !categoryId || !day || !startTime || !endTime) {
       alert("Please fill in all fields.");
       return;
     }
-
     if (startTime >= endTime) {
-      alert(
-        "End time must be later than start time."
-      );
+      alert("End time must be later than start time.");
       return;
     }
-
     const duplicate = schedules.some(
-      (schedule) =>
-        schedule.ward_id === wardId &&
-        schedule.category_id === categoryId &&
-        schedule.day === day
+      (s) =>
+        s.ward_id === wardId && s.category_id === categoryId && s.day === day
     );
-
     if (duplicate) {
-      alert(
-        "Duplicate schedule is not allowed."
-      );
+      alert("Duplicate schedule is not allowed.");
       return;
     }
-
     try {
       setSaving(true);
       setError("");
-
-      const response =
-        await createAdminSchedule(
-          wardId,
-          categoryId,
-          day,
-          startTime,
-          endTime
-        );
-
+      const response = await createAdminSchedule(
+        wardId,
+        categoryId,
+        day,
+        startTime,
+        endTime
+      );
       if (response.success) {
-        setSchedules((current) => [
-          ...current,
-          response.data,
-        ]);
-
+        setSchedules((cur) => [...cur, response.data]);
         setWardId("");
         setCategoryId("");
         setDay("");
         setStartTime("");
         setEndTime("");
-
         setShowForm(false);
-
-        alert(
-          "Schedule added successfully!"
-        );
       }
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to create schedule."
-      );
+      setError(err?.message || "Failed to create schedule.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDeleteSchedule(
-    id: string
-  ) {
-    const confirmed = window.confirm(
-      "Delete this schedule?"
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
+  async function handleDeleteSchedule(id: string) {
+    if (!window.confirm("Delete this schedule?")) return;
     try {
       setError("");
-
       await deleteAdminSchedule(id);
-
-      setSchedules((current) =>
-        current.filter(
-          (schedule) =>
-            schedule.id !== id
-        )
-      );
-
-      alert(
-        "Schedule deleted successfully!"
-      );
+      setSchedules((cur) => cur.filter((s) => s.id !== id));
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to delete schedule."
-      );
+      setError(err?.message || "Failed to delete schedule.");
     }
-  }
-
-  if (loading) {
-    return (
-      <div>
-        <h1>Collection Schedules</h1>
-
-        <p style={styles.subtitle}>
-          Manage waste collection schedules by
-          ward.
-        </p>
-
-        <div style={styles.loading}>
-          Loading schedules...
-        </div>
-      </div>
-    );
   }
 
   return (
-    <div>
-      <div style={styles.header}>
-        <div>
-          <h1>
-            Collection Schedules
-          </h1>
+    <div style={{ fontFamily: font, maxWidth: 1120 }}>
+      <PageHeader
+        title="Collection Schedules"
+        subtitle="Pickup timetable by ward and stream"
+        right={
+          <Btn size="sm" onClick={() => setShowForm(!showForm)}>
+            <Plus size={14} /> {showForm ? "Close" : "Add Schedule"}
+          </Btn>
+        }
+      />
 
-          <p style={styles.subtitle}>
-            Manage waste collection schedules
-            by ward.
-          </p>
-        </div>
+      {loading && <p style={{ color: COLORS.g500 }}>Loading schedules…</p>}
 
-        <button
-          onClick={() =>
-            setShowForm(!showForm)
-          }
-          style={styles.addButton}
+      {!loading && error && (
+        <Card
+          style={{
+            padding: 12,
+            marginBottom: 12,
+            background: COLORS.redL,
+            fontSize: 13,
+            color: COLORS.red,
+          }}
         >
-          {showForm
-            ? "✕ Close"
-            : "+ Add Schedule"}
-        </button>
-      </div>
-
-      {error && (
-        <div style={styles.error}>
           {error}
-
-          <button
-            onClick={loadData}
-            style={styles.retry}
-          >
-            Retry
-          </button>
-        </div>
+        </Card>
       )}
 
       {showForm && (
-        <form
-          onSubmit={handleAddSchedule}
-          style={styles.form}
-        >
-          <h2>
-            Add New Schedule
-          </h2>
-
-          <div style={styles.formGrid}>
-            <div>
-              <label style={styles.label}>
-                Ward
-              </label>
-
-              <select
-                value={wardId}
-                onChange={(e) =>
-                  setWardId(e.target.value)
-                }
-                style={styles.input}
-              >
-                <option value="">
-                  -- Select Ward --
-                </option>
-
-                {wards.map((ward) => (
-                  <option
-                    key={ward.id}
-                    value={ward.id}
-                  >
-                    {ward.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={styles.label}>
-                Waste Category
-              </label>
-
-              <select
-                value={categoryId}
-                onChange={(e) =>
-                  setCategoryId(
-                    e.target.value
-                  )
-                }
-                style={styles.input}
-              >
-                <option value="">
-                  -- Select Category --
-                </option>
-
-                {categories.map(
-                  (category) => (
-                    <option
-                      key={category.id}
-                      value={category.id}
-                    >
-                      {category.name}
-                    </option>
-                  )
-                )}
-              </select>
-            </div>
-
-            <div>
-              <label style={styles.label}>
-                Day
-              </label>
-
-              <select
-                value={day}
-                onChange={(e) =>
-                  setDay(e.target.value)
-                }
-                style={styles.input}
-              >
-                <option value="">
-                  -- Select Day --
-                </option>
-
-                {days.map((item) => (
-                  <option
-                    key={item}
-                    value={item}
-                  >
-                    {item}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={styles.label}>
-                Start Time
-              </label>
-
-              <input
-                type="time"
-                value={startTime}
-                onChange={(e) =>
-                  setStartTime(
-                    e.target.value
-                  )
-                }
-                style={styles.input}
-              />
-            </div>
-
-            <div>
-              <label style={styles.label}>
-                End Time
-              </label>
-
-              <input
-                type="time"
-                value={endTime}
-                onChange={(e) =>
-                  setEndTime(
-                    e.target.value
-                  )
-                }
-                style={styles.input}
-              />
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={saving}
+        <Card style={{ padding: 20, marginBottom: 14 }}>
+          <div
             style={{
-              ...styles.saveButton,
-              opacity: saving ? 0.6 : 1,
-              cursor: saving
-                ? "not-allowed"
-                : "pointer",
+              fontSize: 15,
+              fontWeight: 800,
+              color: COLORS.g900,
+              marginBottom: 14,
             }}
           >
-            {saving
-              ? "Saving..."
-              : "Save Schedule"}
-          </button>
-        </form>
+            Add New Schedule
+          </div>
+          <form onSubmit={handleAddSchedule}>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+                gap: 12,
+              }}
+            >
+              {(
+                [
+                  ["Ward", wardId, setWardId, wards.map((w) => ({ id: w.id, name: w.name })), "-- Select Ward --"],
+                  ["Waste Category", categoryId, setCategoryId, categories.map((c) => ({ id: c.id, name: c.name })), "-- Select Category --"],
+                  ["Day", day, setDay, days.map((d) => ({ id: d, name: d })), "-- Select Day --"],
+                ] as const
+              ).map(([label, value, set, opts, placeholder]) => (
+                <div key={label}>
+                  <label style={labelStyle}>{label}</label>
+                  <select
+                    value={value}
+                    onChange={(e) => set(e.target.value)}
+                    style={inputStyle}
+                  >
+                    <option value="">{placeholder}</option>
+                    {opts.map((o) => (
+                      <option key={o.id} value={o.id}>
+                        {o.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+              <div>
+                <label style={labelStyle}>Start Time</label>
+                <input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>End Time</label>
+                <input
+                  type="time"
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  style={inputStyle}
+                />
+              </div>
+            </div>
+            <Btn type="submit" disabled={saving} style={{ marginTop: 16 }}>
+              {saving ? "Saving…" : "Save Schedule"}
+            </Btn>
+          </form>
+        </Card>
       )}
 
-      <div style={styles.tableWrapper}>
-        {schedules.length === 0 ? (
-          <div style={styles.empty}>
-            <h2>
-              No schedules found
-            </h2>
+      {!loading && !error && schedules.length === 0 && (
+        <EmptyState
+          icon={<CalendarDays size={40} />}
+          title="No schedules found"
+          hint="Add a collection schedule using the button above."
+        />
+      )}
 
-            <p>
-              Add a collection schedule
-              using the button above.
-            </p>
-          </div>
-        ) : (
-          <table style={styles.table}>
+      {schedules.length > 0 && (
+        <Card style={{ padding: 0, overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 640 }}>
             <thead>
               <tr>
-                <th style={styles.th}>
-                  Ward
-                </th>
-
-                <th style={styles.th}>
-                  Category
-                </th>
-
-                <th style={styles.th}>
-                  Day
-                </th>
-
-                <th style={styles.th}>
-                  Time
-                </th>
-
-                <th style={styles.th}>
-                  Action
-                </th>
+                {["Ward", "Category", "Day", "Time", ""].map((h) => (
+                  <th
+                    key={h}
+                    style={{
+                      padding: "12px 15px",
+                      textAlign: "left",
+                      background: COLORS.g50,
+                      borderBottom: `1px solid ${COLORS.g200}`,
+                      fontSize: 11,
+                      textTransform: "uppercase",
+                      letterSpacing: 0.6,
+                      color: COLORS.g500,
+                    }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
-
             <tbody>
-              {schedules.map(
-                (schedule) => (
-                  <tr
-                    key={schedule.id}
-                  >
-                    <td style={styles.td}>
-                      {schedule.ward}
-                    </td>
-
-                    <td style={styles.td}>
-                      {schedule.category}
-                    </td>
-
-                    <td style={styles.td}>
-                      {schedule.day}
-                    </td>
-
-                    <td style={styles.td}>
-                      {schedule.startTime}
-                      {" - "}
-                      {schedule.endTime}
-                    </td>
-
-                    <td style={styles.td}>
-                      <button
-                        onClick={() =>
-                          handleDeleteSchedule(
-                            schedule.id
-                          )
-                        }
-                        style={
-                          styles.deleteButton
-                        }
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                )
-              )}
+              {schedules.map((s) => (
+                <tr key={s.id}>
+                  <td style={tdStyle}>
+                    <strong>{s.ward}</strong>
+                  </td>
+                  <td style={tdStyle}>
+                    <WastePill category={s.category} />
+                  </td>
+                  <td style={tdStyle}>{s.day}</td>
+                  <td style={tdStyle}>
+                    {s.startTime} – {s.endTime}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    <Btn
+                      size="sm"
+                      color={COLORS.red}
+                      onClick={() => handleDeleteSchedule(s.id)}
+                    >
+                      <Trash2 size={13} /> Delete
+                    </Btn>
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
-        )}
-      </div>
+        </Card>
+      )}
     </div>
   );
 }
 
-const styles = {
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "25px",
-  },
+const labelStyle: React.CSSProperties = {
+  display: "block",
+  marginBottom: 6,
+  fontWeight: 600,
+  fontSize: 12,
+  color: COLORS.g600,
+};
 
-  subtitle: {
-    color: "#6b7280",
-  },
+const inputStyle: React.CSSProperties = {
+  width: "100%",
+  boxSizing: "border-box",
+  padding: 10,
+  border: `1px solid ${COLORS.g300}`,
+  borderRadius: 8,
+  background: "white",
+  fontSize: 14,
+};
 
-  addButton: {
-    padding: "11px 18px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-    fontSize: "14px",
-  },
-
-  form: {
-    background: "white",
-    padding: "25px",
-    borderRadius: "12px",
-    marginBottom: "25px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-    border:
-      "1px solid #bbf7d0",
-  },
-
-  formGrid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(200px, 1fr))",
-    gap: "20px",
-    marginTop: "20px",
-  },
-
-  label: {
-    display: "block",
-    marginBottom: "7px",
-    fontWeight: "bold" as const,
-  },
-
-  input: {
-    width: "100%",
-    boxSizing: "border-box" as const,
-    padding: "10px",
-    border:
-      "1px solid #d1d5db",
-    borderRadius: "6px",
-    background: "white",
-  },
-
-  saveButton: {
-    marginTop: "25px",
-    padding: "11px 20px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    fontSize: "15px",
-    fontWeight: "bold",
-  },
-
-  tableWrapper: {
-    background: "white",
-    borderRadius: "12px",
-    overflow: "hidden" as const,
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-  },
-
-  table: {
-    width: "100%",
-    borderCollapse:
-      "collapse" as const,
-  },
-
-  th: {
-    padding: "15px",
-    textAlign: "left" as const,
-    background: "#f0fdf4",
-    borderBottom:
-      "1px solid #e5e7eb",
-  },
-
-  td: {
-    padding: "15px",
-    borderBottom:
-      "1px solid #e5e7eb",
-  },
-
-  deleteButton: {
-    padding: "7px 12px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#dc2626",
-    color: "white",
-    cursor: "pointer",
-  },
-
-  loading: {
-    padding: "30px",
-    background: "white",
-    borderRadius: "10px",
-    color: "#6b7280",
-  },
-
-  empty: {
-    padding: "40px",
-    textAlign: "center" as const,
-    color: "#6b7280",
-  },
-
-  error: {
-    padding: "15px",
-    marginBottom: "20px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-  },
-
-  retry: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
+const tdStyle: React.CSSProperties = {
+  padding: "12px 15px",
+  borderBottom: `1px solid ${COLORS.g200}`,
+  fontSize: 13,
 };
 
 export default Schedules;

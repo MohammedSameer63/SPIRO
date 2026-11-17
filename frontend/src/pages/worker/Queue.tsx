@@ -1,39 +1,52 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Check, MapPin } from "lucide-react";
 import {
   getWorkerQueue,
+  getWorkerWards,
   updateWorkerReportStatus,
 } from "../../api/reports";
+import { resolveImageUrl } from "../../api/config";
 import type { Report } from "../../api/reports";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  PageHeader,
+  StatusPill,
+  WastePill,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 function Queue() {
+  const navigate = useNavigate();
   const [reports, setReports] = useState<Report[]>([]);
+  const [hasWards, setHasWards] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [acceptingId, setAcceptingId] = useState<string | null>(
-    null
-  );
+  const [acceptingId, setAcceptingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadReports();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadReports() {
     try {
       setLoading(true);
       setError("");
-
-      const response = await getWorkerQueue();
-
-      if (response.success) {
-        setReports(response.data);
+      const [queueResponse, wardsResponse] = await Promise.all([
+        getWorkerQueue(),
+        getWorkerWards().catch(() => null),
+      ]);
+      if (queueResponse.success) setReports(queueResponse.data);
+      if (wardsResponse !== null) {
+        setHasWards(
+          wardsResponse.success && wardsResponse.data.length > 0
+        );
       }
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to load pending reports."
-      );
+      setError(err?.message || "Failed to load pending reports.");
     } finally {
       setLoading(false);
     }
@@ -43,276 +56,181 @@ function Queue() {
     try {
       setAcceptingId(reportId);
       setError("");
-
-      await updateWorkerReportStatus(
-        reportId,
-        "ACCEPTED"
-      );
-
-      setReports((currentReports) =>
-        currentReports.filter(
-          (report) => report.id !== reportId
-        )
-      );
-
-      alert("Report accepted successfully!");
+      await updateWorkerReportStatus(reportId, "ACCEPTED");
+      setReports((cur) => cur.filter((r) => r.id !== reportId));
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to accept report."
-      );
+      setError(err?.message || "Failed to accept report.");
     } finally {
       setAcceptingId(null);
     }
   }
 
-  if (loading) {
-    return (
-      <div>
-        <h1>Report Queue</h1>
-
-        <p style={styles.subtitle}>
-          Pending reports from citizens.
-        </p>
-
-        <div style={styles.loading}>
-          Loading pending reports...
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div>
-      <h1>Report Queue</h1>
+    <div style={{ fontFamily: font, maxWidth: 1120 }}>
+      <PageHeader
+        title="Today's Assignments"
+        subtitle={`${reports.length} pending in your wards`}
+        right={
+          <Btn size="sm" variant="ghost" onClick={loadReports}>
+            Refresh
+          </Btn>
+        }
+      />
 
-      <p style={styles.subtitle}>
-        Pending reports from citizens.
-      </p>
+      {loading && <p style={{ color: COLORS.g500 }}>Loading queue…</p>}
 
-      {error && (
-        <div style={styles.error}>
-          <span>{error}</span>
-
-          <button
-            onClick={loadReports}
-            style={styles.retry}
-          >
-            Retry
-          </button>
-        </div>
+      {!loading && error && (
+        <Card
+          style={{
+            padding: 12,
+            marginBottom: 12,
+            background: COLORS.redL,
+            fontSize: 13,
+            color: COLORS.red,
+          }}
+        >
+          {error}
+        </Card>
       )}
 
-      <div style={styles.container}>
-        {reports.length === 0 ? (
-          <div style={styles.empty}>
-            <h2>No pending reports</h2>
+      {!loading && !error && reports.length === 0 && (
+        <EmptyState
+          icon={<Check size={40} />}
+          title={hasWards ? "All caught up!" : "No wards assigned"}
+          hint={
+            hasWards
+              ? "No pending reports in your wards."
+              : "You are not assigned to any ward yet — contact your admin."
+          }
+          action={<Btn onClick={loadReports}>Refresh Queue</Btn>}
+        />
+      )}
 
-            <p>
-              There are currently no reports waiting
-              for acceptance.
-            </p>
-
-            <button
-              onClick={loadReports}
-              style={styles.refreshButton}
-            >
-              Refresh Queue
-            </button>
-          </div>
-        ) : (
-          reports.map((report) => (
-            <div
-              key={report.id}
-              style={styles.card}
-            >
-              <div style={styles.header}>
-                <h2>Waste Report</h2>
-
-                <span style={styles.status}>
-                  {report.status}
-                </span>
-              </div>
-
-              {report.image_url && (
-                <img
-                  src={
-                    report.image_url.startsWith("http")
-                      ? report.image_url
-                      : `http://127.0.0.1:8000/${report.image_url.replace(
-                          /^\/+/,
-                          ""
-                        )}`
-                  }
-                  alt="Reported waste"
-                  style={styles.image}
-                />
-              )}
-
-              <div style={styles.info}>
-                <p>
-                  <strong>Description:</strong>{" "}
-                  {report.description ||
-                    "No description"}
-                </p>
-
-                <p>
-                  <strong>Address:</strong>{" "}
-                  {report.address ||
-                    "No address"}
-                </p>
-
-                <p>
-                  <strong>Location:</strong>{" "}
-                  {report.latitude},{" "}
-                  {report.longitude}
-                </p>
-
-                <p>
-                  <strong>Reported:</strong>{" "}
-                  {new Date(
-                    report.created_at
-                  ).toLocaleString()}
-                </p>
-              </div>
-
-              <button
-                onClick={() =>
-                  handleAccept(report.id)
-                }
-                disabled={
-                  acceptingId === report.id
-                }
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+          gap: 12,
+        }}
+      >
+        {reports.map((report, i) => (
+          <Card key={report.id} style={{ padding: 0, overflow: "hidden" }}>
+            <div style={{ display: "flex" }}>
+              <div
                 style={{
-                  ...styles.button,
-                  opacity:
-                    acceptingId === report.id
-                      ? 0.6
-                      : 1,
-                  cursor:
-                    acceptingId === report.id
-                      ? "not-allowed"
-                      : "pointer",
+                  width: 44,
+                  background: COLORS.dBlue,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#fff",
+                  fontSize: 16,
+                  fontWeight: 800,
+                  flexShrink: 0,
                 }}
               >
-                {acceptingId === report.id
-                  ? "Accepting..."
-                  : "Accept Report"}
-              </button>
+                {i + 1}
+              </div>
+              <div style={{ flex: 1, padding: 14 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    marginBottom: 8,
+                  }}
+                >
+                  <div>
+                    <div
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        color: COLORS.g900,
+                      }}
+                    >
+                      {report.description || "Waste report"}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: 11,
+                        color: COLORS.g500,
+                        marginTop: 2,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                      }}
+                    >
+                      <MapPin size={11} />
+                      {report.address || "No address"}
+                    </div>
+                  </div>
+                  <StatusPill status={report.status} />
+                </div>
+                {report.image_url && (
+                  <img
+                    src={resolveImageUrl(report.image_url)}
+                    alt="Reported waste"
+                    style={{
+                      width: "100%",
+                      maxHeight: 180,
+                      objectFit: "cover",
+                      borderRadius: 10,
+                      marginBottom: 10,
+                    }}
+                  />
+                )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ fontSize: 11, color: COLORS.g500 }}>
+                    {report.prediction ? (
+                      <WastePill
+                        category={report.prediction.category_name}
+                      />
+                    ) : (
+                      "AI analyzing…"
+                    )}
+                    <div style={{ marginTop: 3 }}>
+                      Reported{" "}
+                      {new Date(report.created_at).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <Btn
+                    onClick={() => handleAccept(report.id)}
+                    disabled={acceptingId === report.id}
+                    size="sm"
+                  >
+                    {acceptingId === report.id ? "Accepting…" : "Accept"}
+                  </Btn>
+                </div>
+                <button
+                  onClick={() => navigate(`/worker/active`)}
+                  style={{
+                    border: "none",
+                    background: "none",
+                    color: COLORS.dBlue,
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: 0,
+                    marginTop: 8,
+                  }}
+                >
+                  Accept, then verify pickup in Active Reports →
+                </button>
+              </div>
             </div>
-          ))
-        )}
+          </Card>
+        ))}
       </div>
     </div>
   );
 }
-
-const styles = {
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "25px",
-  },
-
-  container: {
-    maxWidth: "850px",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "20px",
-  },
-
-  card: {
-    padding: "25px",
-    background: "white",
-    borderRadius: "12px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-  },
-
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "15px",
-  },
-
-  status: {
-    padding: "6px 12px",
-    borderRadius: "20px",
-    background: "#fef3c7",
-    color: "#92400e",
-    fontWeight: "bold",
-    fontSize: "13px",
-  },
-
-  image: {
-    width: "100%",
-    maxHeight: "350px",
-    objectFit: "cover" as const,
-    borderRadius: "10px",
-    marginBottom: "20px",
-  },
-
-  info: {
-    lineHeight: "1.6",
-  },
-
-  button: {
-    marginTop: "10px",
-    padding: "11px 20px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    fontSize: "15px",
-    fontWeight: "bold",
-  },
-
-  empty: {
-    padding: "35px",
-    background: "white",
-    borderRadius: "10px",
-    textAlign: "center" as const,
-    color: "#6b7280",
-  },
-
-  refreshButton: {
-    marginTop: "15px",
-    padding: "10px 18px",
-    border: "none",
-    borderRadius: "7px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-
-  loading: {
-    padding: "30px",
-    background: "white",
-    borderRadius: "10px",
-    color: "#6b7280",
-  },
-
-  error: {
-    display: "flex",
-    alignItems: "center",
-    padding: "15px",
-    marginBottom: "20px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-  },
-
-  retry: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-};
 
 export default Queue;

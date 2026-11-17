@@ -42,6 +42,22 @@ class WasteReportResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
+    # ML inference result for this report (None while pending/failed).
+    prediction: "PredictionInfo | None" = None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+    )
+
+
+class PredictionInfo(BaseModel):
+    id: UUID
+    category_id: UUID
+    category_name: str | None = None
+    confidence: Decimal | None = None
+    model_used: str | None = None
+    prediction_time: datetime
+
     model_config = ConfigDict(
         from_attributes=True,
     )

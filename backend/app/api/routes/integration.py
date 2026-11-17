@@ -15,6 +15,7 @@ from app.models import (
     Assignment,
     CollectionSchedule,
     Household,
+    PickupValidation,
     User,
     Ward,
     WasteCategory,
@@ -23,6 +24,24 @@ from app.models import (
 )
 from app.services.audit_log_service import AuditLogService
 from app.repositories.audit_log_repository import AuditLogRepository
+from sqlalchemy.orm import selectinload
+from app.models.prediction import Prediction
+from app.repositories.coin_transaction_repository import (
+    CoinTransactionRepository,
+)
+from app.repositories.coin_wallet_repository import CoinWalletRepository
+from app.repositories.pickup_validation_repository import (
+    PickupValidationRepository,
+)
+from app.repositories.waste_report_repository import WasteReportRepository
+from app.schemas.coins import CoinWalletView
+from app.schemas.qr import (
+    PickupValidationRequest,
+    PickupValidationResponse,
+)
+from app.services.coin_service import CoinService
+from app.services.pickup_service import PickupService
+from app.core.config import settings
 
 
 router = APIRouter(tags=["Frontend Integration"])
@@ -47,7 +66,73 @@ def success(data, message: str | None = None):
     return response
 
 
-def report_payload(report: WasteReport) -> dict:
+# Set once we discover the QR/coin tables haven't been migrated yet, so
+# every request doesn't repeat the failed lookup + warning. Core report
+# data keeps flowing; only the additive QR/coin fields fall back.
+_feature_tables_missing = False
+
+
+def _feature_tables_available(db: Session) -> bool:
+    """
+    True if the optional QR/coin tables exist. Probes inside a savepoint
+    so a missing table can't poison the request's transaction — callers
+    get safe defaults instead of a 500.
+    """
+    global _feature_tables_missing
+    if _feature_tables_missing:
+        return False
+    try:
+        with db.begin_nested():
+            db.scalar(select(PickupValidation.id).limit(1))
+        return True
+    except Exception as exc:
+        if "pickup_validations" in str(exc).lower() or "does not exist" in str(exc).lower():
+            _feature_tables_missing = True
+            print(
+                "WARNING: QR/coin tables are missing from the database "
+                "(relation \"pickup_validations\" does not exist). "
+                "Queue/reports still work, but pickup validation and green "
+                "coins are disabled until you run: "
+                "backend/database/migrate_qr_coins.sql "
+                "(see docs/DEPLOYMENT.md)."
+            )
+            return False
+        raise
+
+
+def report_payload(
+    report: WasteReport, db: Session | None = None
+) -> dict:
+    prediction = getattr(report, "prediction", None)
+    prediction_payload = None
+    if prediction is not None:
+        category = getattr(prediction, "category", None)
+        prediction_payload = {
+            "id": str(prediction.id),
+            "category_id": str(prediction.category_id),
+            "category_name": category.name if category is not None else getattr(
+                prediction, "category_name", None
+            ),
+            "confidence": float(prediction.confidence) if prediction.confidence is not None else None,
+            "model_used": prediction.model_used,
+            "prediction_time": prediction.prediction_time.isoformat()
+            if prediction.prediction_time
+            else None,
+        }
+    pickup_validated = False
+    coins_awarded = 0
+    if db is not None and _feature_tables_available(db):
+        pickup_validated = (
+            db.scalar(
+                select(PickupValidation.id).where(
+                    PickupValidation.report_id == report.id
+                )
+            )
+            is not None
+        )
+        coins_awarded = CoinTransactionRepository(db).sum_for_report(
+            report.id
+        )
     return {
         "id": str(report.id),
         "user_id": str(report.user_id),
@@ -60,6 +145,9 @@ def report_payload(report: WasteReport) -> dict:
         "status": report.status.value,
         "created_at": report.created_at.isoformat(),
         "updated_at": report.updated_at.isoformat(),
+        "prediction": prediction_payload,
+        "pickup_validated": pickup_validated,
+        "coins_awarded": coins_awarded,
     }
 
 
@@ -273,6 +361,60 @@ def get_admin_waste_categories(current_user: User = Depends(require_role("ADMIN"
     ])
 
 
+@router.get("/admin/reports")
+def get_admin_reports(
+    status: ReportStatus | None = None,
+    limit: int = 100,
+    current_user: User = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db),
+):
+    """
+    All waste reports, newest first, with prediction + coin/validation
+    info. Powers the admin audit-trail view.
+    """
+    stmt = (
+        select(WasteReport)
+        .options(selectinload(WasteReport.prediction).selectinload(Prediction.category))
+        .order_by(WasteReport.created_at.desc())
+        .limit(max(1, min(limit, 500)))
+    )
+    if status is not None:
+        stmt = stmt.where(WasteReport.status == status)
+    reports = list(db.scalars(stmt).all())
+    return success([report_payload(report, db) for report in reports])
+
+
+@router.get("/ml/status")
+def get_ml_status(
+    current_user: User = Depends(require_role("ADMIN")),
+    db: Session = Depends(get_db),
+):
+    """
+    Truthful, live ML service state for the admin model-registry view.
+    """
+    from app.services.ml_inference_service import ml_inference_service
+
+    svc = ml_inference_service
+    return success({
+        "enabled": settings.ml_enabled,
+        "initialized": svc._initialized,
+        "mock_mode": svc._mock_mode,
+        "model_file": settings.yolo_onnx_path,
+        "architecture": "YOLOv11n (ONNX Runtime, CPU)",
+        "input_size": 640,
+        "num_classes": len(svc._class_names),
+        "confidence_threshold": settings.ml_confidence_threshold,
+        "pipeline_stages": [
+            "Image upload",
+            "Preprocessing (letterbox + normalize)",
+            "YOLOv11n object detection",
+            "Confidence filtering + NMS",
+            "Waste-stream mapping",
+            "Category + coin-ready result",
+        ],
+    })
+
+
 @router.get("/worker/wards")
 def get_worker_wards(current_user: User = Depends(require_role("WORKER")), db: Session = Depends(get_db)):
     wards = db.execute(
@@ -304,6 +446,7 @@ def get_worker_dashboard(current_user: User = Depends(require_role("WORKER")), d
 def get_worker_queue_reports(db: Session, worker_id: UUID) -> list[WasteReport]:
     return list(db.scalars(
         select(WasteReport)
+        .options(selectinload(WasteReport.prediction).selectinload(Prediction.category))
         .join(User, WasteReport.user_id == User.id)
         .join(Household, User.household_id == Household.id)
         .join(WorkerWard, WorkerWard.ward_id == Household.ward_id)
@@ -318,18 +461,20 @@ def get_worker_queue_reports(db: Session, worker_id: UUID) -> list[WasteReport]:
 
 @router.get("/worker/reports/queue")
 def get_worker_queue(current_user: User = Depends(require_role("WORKER")), db: Session = Depends(get_db)):
-    return success([report_payload(report) for report in get_worker_queue_reports(db, current_user.id)])
+    return success([report_payload(report, db) for report in get_worker_queue_reports(db, current_user.id)])
 
 
 @router.get("/worker/reports/active")
 def get_worker_active_reports(current_user: User = Depends(require_role("WORKER")), db: Session = Depends(get_db)):
     reports = db.scalars(
-        select(WasteReport).join(Assignment).where(
+        select(WasteReport)
+        .options(selectinload(WasteReport.prediction).selectinload(Prediction.category))
+        .join(Assignment).where(
             Assignment.worker_id == current_user.id,
             WasteReport.status.in_([ReportStatus.ACCEPTED, ReportStatus.IN_PROGRESS]),
         ).order_by(WasteReport.updated_at.desc())
     ).all()
-    return success([report_payload(report) for report in reports])
+    return success([report_payload(report, db) for report in reports])
 
 
 @router.patch("/worker/reports/{report_id}/status")
@@ -356,13 +501,112 @@ def update_worker_report_status(report_id: UUID, data: WorkerReportStatusUpdate,
         if data.status == ReportStatus.COMPLETED:
             assignment.completed_at = datetime.utcnow()
     report.status = data.status
+
+    coins_awarded = 0
+    qr_validated = False
+    if data.status == ReportStatus.COMPLETED and _feature_tables_available(db):
+        # Reward the citizen. A QR-validated pickup earns the bonus.
+        # Awarding is idempotent: repeats for the same report return the
+        # existing transaction instead of minting new coins.
+        qr_validated = (
+            db.scalar(
+                select(PickupValidation.id).where(
+                    PickupValidation.report_id == report.id
+                )
+            )
+            is not None
+        )
+        coin_service = CoinService(
+            db,
+            CoinWalletRepository(db),
+            CoinTransactionRepository(db),
+        )
+        transaction = coin_service.award_completion(
+            user_id=report.user_id,
+            report_id=report.id,
+            qr_validated=qr_validated,
+        )
+        coins_awarded = transaction.amount if transaction is not None else 0
+
     AuditLogService(AuditLogRepository(db)).create_log(
         event_type=audit_event, entity_type="waste_report", entity_id=report.id, performed_by=current_user.id,
-        metadata={"worker_id": str(current_user.id), "status": data.status.value},
+        metadata={"worker_id": str(current_user.id), "status": data.status.value, "coins_awarded": coins_awarded, "qr_validated": qr_validated},
     )
     db.commit()
     db.refresh(report)
-    return success(report_payload(report), "Report status updated.")
+    payload = report_payload(report, db)
+    payload["coins_awarded"] = coins_awarded
+    payload["qr_validated"] = qr_validated
+    return success(payload, "Report status updated.")
+
+
+@router.post("/worker/reports/{report_id}/validate-pickup")
+def validate_pickup(
+    report_id: UUID,
+    data: PickupValidationRequest,
+    current_user: User = Depends(require_role("WORKER")),
+    db: Session = Depends(get_db),
+):
+    """
+    Validate a pickup by scanning the citizen's household QR code.
+
+    The worker scans the QR at collection time; the payload is signature-
+    checked and must belong to the household that filed the report.
+    A validated pickup earns the citizen the green-coin QR bonus when the
+    report is later marked COMPLETED.
+    """
+    if not _feature_tables_available(db):
+        raise HTTPException(
+            status_code=503,
+            detail="Pickup validation is unavailable: the database has not "
+            "been migrated (run backend/database/migrate_qr_coins.sql).",
+        )
+    service = PickupService(
+        db,
+        PickupValidationRepository(db),
+        WasteReportRepository(db),
+    )
+    validation = service.validate_pickup(
+        report_id=report_id,
+        qr_payload=data.qr_payload,
+        worker=current_user,
+    )
+    db.commit()
+    return success(
+        {
+            "report_id": str(validation.report_id),
+            "household_id": str(validation.household_id),
+            "worker_id": str(validation.worker_id),
+            "method": validation.method,
+            "validated_at": validation.validated_at.isoformat()
+            if validation.validated_at
+            else None,
+        },
+        "Pickup validated.",
+    )
+
+
+@router.get("/coins/me", response_model=CoinWalletView)
+def get_my_coins(
+    current_user: User = Depends(require_role("CITIZEN")),
+    db: Session = Depends(get_db),
+):
+    """
+    Green-coin wallet for the logged-in citizen: balance, lifetime
+    earnings and recent ledger entries.
+    """
+    if not _feature_tables_available(db):
+        raise HTTPException(
+            status_code=503,
+            detail="Green coins are unavailable: the database has not "
+            "been migrated (run backend/database/migrate_qr_coins.sql).",
+        )
+    service = CoinService(
+        db,
+        CoinWalletRepository(db),
+        CoinTransactionRepository(db),
+    )
+    return service.get_wallet_view(current_user.id)
 
 
 @router.get("/worker/schedules")

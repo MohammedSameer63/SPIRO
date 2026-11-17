@@ -1,290 +1,270 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Hourglass,
+  MapPin,
+  Truck,
+  User,
+} from "lucide-react";
 
 import {
   getWorkerStats,
   getWorkerWards,
   getWorkerSchedules,
 } from "../../api/reports";
+import { getCurrentUser, type User as UserType } from "../../api/auth";
 
 import type {
   WorkerSchedule,
   WorkerWard,
 } from "../../api/reports";
+import {
+  Btn,
+  Card,
+  EmptyState,
+  PageHeader,
+  Stat,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const [me, setMe] = useState<UserType | null>(null);
   const [stats, setStats] = useState({
     pending: 0,
     accepted: 0,
     in_progress: 0,
     completed_today: 0,
   });
-
-  const [wards, setWards] =
-    useState<WorkerWard[]>([]);
-
-  const [schedules, setSchedules] =
-    useState<WorkerSchedule[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [error, setError] =
-    useState("");
+  const [wards, setWards] = useState<WorkerWard[]>([]);
+  const [schedules, setSchedules] = useState<WorkerSchedule[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadDashboard() {
     try {
       setLoading(true);
       setError("");
-
-      const [
-        statsResponse,
-        wardsResponse,
-        schedulesResponse,
-      ] = await Promise.all([
-        getWorkerStats(),
-        getWorkerWards(),
-        getWorkerSchedules(),
-      ]);
-
-      if (statsResponse.success) {
-        setStats(statsResponse.data);
-      }
-
-      if (wardsResponse.success) {
-        setWards(wardsResponse.data);
-      }
-
-      if (schedulesResponse.success) {
-        setSchedules(schedulesResponse.data);
-      }
+      const [statsResponse, wardsResponse, schedulesResponse, meResponse] =
+        await Promise.all([
+          getWorkerStats(),
+          getWorkerWards(),
+          getWorkerSchedules(),
+          getCurrentUser().catch(() => null),
+        ]);
+      if (statsResponse.success) setStats(statsResponse.data);
+      if (wardsResponse.success) setWards(wardsResponse.data);
+      if (schedulesResponse.success) setSchedules(schedulesResponse.data);
+      setMe(meResponse);
     } catch (err: any) {
-      console.error(err);
-
-      setError(
-        err?.message ||
-          "Failed to load worker dashboard."
-      );
+      setError(err?.message || "Failed to load worker dashboard.");
     } finally {
       setLoading(false);
     }
   }
 
-  const dashboardStats = [
-    {
-      title: "Pending Reports",
-      value: stats.pending,
-    },
-    {
-      title: "Accepted Reports",
-      value: stats.accepted,
-    },
-    {
-      title: "In Progress",
-      value: stats.in_progress,
-    },
-    {
-      title: "Completed Today",
-      value: stats.completed_today,
-    },
-  ];
-
   if (loading) {
     return (
-      <div>
-        <h1>Worker Dashboard</h1>
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Worker Dashboard" />
+        <p style={{ color: COLORS.g500 }}>Loading…</p>
+      </div>
+    );
+  }
 
-        <p style={styles.subtitle}>
-          Manage waste reports from your assigned wards.
-        </p>
-
-        <p>Loading dashboard...</p>
+  if (error) {
+    return (
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Worker Dashboard" />
+        <EmptyState
+          icon={<Truck size={40} />}
+          title="Couldn't load dashboard"
+          hint={error}
+          action={<Btn onClick={loadDashboard}>Retry</Btn>}
+        />
       </div>
     );
   }
 
   return (
-    <div>
-      <h1>Worker Dashboard</h1>
+    <div
+      style={{
+        fontFamily: font,
+        maxWidth: 1120,
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <PageHeader
+        title={`On duty${me ? `, ${me.name.split(" ")[0]}` : ""}`}
+        subtitle={
+          wards.length > 0
+            ? `Covering ${wards.map((w) => w.name).join(" · ")}`
+            : "No wards assigned yet"
+        }
+        right={
+          <Btn size="sm" onClick={() => navigate("/worker/queue")}>
+            <ClipboardList size={14} /> Open Queue
+          </Btn>
+        }
+      />
 
-      <p style={styles.subtitle}>
-        Manage waste reports from your assigned wards.
-      </p>
-
-      {error && (
-        <div style={styles.error}>
-          {error}
-
-          <button
-            onClick={loadDashboard}
-            style={styles.retry}
-          >
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* Assigned Wards */}
-
-      <div style={styles.wards}>
-        <h2>Assigned Wards</h2>
-
-        {wards.length === 0 ? (
-          <p style={styles.noWards}>
-            No wards assigned to you yet.
-          </p>
-        ) : (
-          <div>
-            {wards.map((ward) => (
-              <span
-                key={ward.id}
-                style={styles.ward}
-                title={
-                  ward.description ||
-                  ward.zone ||
-                  ""
-                }
-              >
-                {ward.name}
-              </span>
-            ))}
-          </div>
-        )}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <Stat
+          label="Pending"
+          value={stats.pending}
+          icon={<Hourglass size={18} />}
+          color={COLORS.amber}
+        />
+        <Stat
+          label="Accepted"
+          value={stats.accepted}
+          icon={<ClipboardList size={18} />}
+          color={COLORS.dBlue}
+        />
+        <Stat
+          label="In Progress"
+          value={stats.in_progress}
+          icon={<Truck size={18} />}
+          color={COLORS.sky}
+        />
+        <Stat
+          label="Done Today"
+          value={stats.completed_today}
+          icon={<CheckCircle2 size={18} />}
+          color={COLORS.cGreen}
+        />
       </div>
 
-      <div style={styles.schedules}>
-        <h2>Collection Schedules</h2>
-
-        {schedules.length === 0 ? (
-          <p style={styles.noWards}>
-            No collection schedules are available for your assigned wards.
-          </p>
-        ) : (
-          <div style={styles.scheduleList}>
-            {schedules.map((schedule) => (
-              <div key={schedule.id} style={styles.schedule}>
-                <strong>{schedule.ward}</strong>
-                <span>{schedule.category}</span>
-                <span>
-                  {schedule.day}: {schedule.startTime} – {schedule.endTime}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Statistics */}
-
-      <div style={styles.grid}>
-        {dashboardStats.map((stat) => (
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
+          gap: 12,
+        }}
+      >
+        <Card
+          style={{
+            padding: 20,
+            background: "linear-gradient(135deg,#dbeafe,#eff6ff)",
+          }}
+        >
           <div
-            key={stat.title}
-            style={styles.card}
+            style={{
+              width: 56,
+              height: 56,
+              borderRadius: "50%",
+              background: COLORS.dBlue,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#fff",
+              marginBottom: 10,
+            }}
           >
-            <p style={styles.cardTitle}>
-              {stat.title}
-            </p>
-
-            <h2 style={styles.value}>
-              {stat.value}
-            </h2>
+            <User size={28} />
           </div>
-        ))}
+          <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.g900 }}>
+            {me?.name || "Worker"}
+          </div>
+          <div style={{ fontSize: 12, color: COLORS.g500, marginTop: 4 }}>
+            {me?.email || ""}
+          </div>
+          <div style={{ fontSize: 12, color: COLORS.g500 }}>
+            {wards.length} ward{wards.length === 1 ? "" : "s"} assigned
+          </div>
+        </Card>
+
+        <Card style={{ padding: 16 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: COLORS.g900,
+              marginBottom: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <MapPin size={15} color={COLORS.dBlue} /> My Wards
+          </div>
+          {wards.length === 0 ? (
+            <div style={{ fontSize: 13, color: COLORS.g400 }}>
+              No wards assigned — contact your admin.
+            </div>
+          ) : (
+            wards.slice(0, 5).map((w) => (
+              <div
+                key={w.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  padding: "6px 0",
+                  borderBottom: `1px solid ${COLORS.g100}`,
+                }}
+              >
+                <span style={{ fontWeight: 600, color: COLORS.g900 }}>
+                  {w.name}
+                </span>
+                <span style={{ color: COLORS.g400 }}>{w.zone || ""}</span>
+              </div>
+            ))
+          )}
+        </Card>
+
+        <Card style={{ padding: 16 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: COLORS.g900,
+              marginBottom: 10,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            }}
+          >
+            <CalendarDays size={15} color={COLORS.dBlue} /> Upcoming
+            Collections
+          </div>
+          {schedules.length === 0 ? (
+            <div style={{ fontSize: 13, color: COLORS.g400 }}>
+              No collection schedules for your wards.
+            </div>
+          ) : (
+            schedules.slice(0, 5).map((s) => (
+              <div
+                key={s.id}
+                style={{ fontSize: 13, padding: "6px 0", color: COLORS.g700 }}
+              >
+                <strong>{s.day}</strong> · {s.ward} · {s.category}
+                <div style={{ fontSize: 11, color: COLORS.g400 }}>
+                  {s.startTime} – {s.endTime}
+                </div>
+              </div>
+            ))
+          )}
+        </Card>
       </div>
     </div>
   );
 }
-
-const styles = {
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "30px",
-  },
-
-  wards: {
-    marginBottom: "30px",
-  },
-
-  schedules: {
-    marginBottom: "30px",
-  },
-
-  scheduleList: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: "10px",
-  },
-
-  schedule: {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: "12px",
-    alignItems: "center",
-    padding: "12px 14px",
-    background: "white",
-    borderRadius: "8px",
-    boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-  },
-
-  ward: {
-    display: "inline-block",
-    marginRight: "10px",
-    marginBottom: "8px",
-    padding: "8px 14px",
-    background: "#dcfce7",
-    color: "#166534",
-    borderRadius: "20px",
-  },
-
-  noWards: {
-    color: "#6b7280",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fit, minmax(180px, 1fr))",
-    gap: "20px",
-  },
-
-  card: {
-    padding: "25px",
-    background: "white",
-    borderRadius: "12px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-  },
-
-  cardTitle: {
-    color: "#6b7280",
-  },
-
-  value: {
-    fontSize: "32px",
-    margin: "10px 0 0",
-  },
-
-  error: {
-    padding: "15px",
-    marginBottom: "20px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-  },
-
-  retry: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-};
 
 export default Dashboard;

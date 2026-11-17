@@ -29,6 +29,10 @@ datasets/
 logs/
 reports/
 runs/
+# ...except the tracked SPIRO ML audit report
+!ml/reports/
+ml/reports/*
+!ml/reports/audit_report.md
 
 *.pt
 *.pth
@@ -58,3 +62,10 @@ frontend/dist/
 
 .DS_Store
 Thumbs.db
+
+# ============================================================
+# Reference material (do not commit: 100MB+ vendor drops)
+# ============================================================
+
+Major_Artifact/
+Major_Artifact.zip

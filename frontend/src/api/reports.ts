@@ -1,5 +1,16 @@
 import { apiRequest } from "./client";
 
+export type Prediction = {
+  id: string;
+  category_id: string;
+  category_name: string | null;
+  // Backend serializes Decimal as a JSON string (e.g. "96.30"),
+  // so accept both and normalize at the display layer.
+  confidence: number | string | null;
+  model_used: string | null;
+  prediction_time: string;
+};
+
 export type Report = {
   id: string;
   user_id: string;
@@ -16,6 +27,10 @@ export type Report = {
     | "COMPLETED";
   created_at: string;
   updated_at: string;
+  prediction?: Prediction | null;
+  // Present on worker report payloads (integration endpoints).
+  pickup_validated?: boolean;
+  coins_awarded?: number;
 };
 
 /*
@@ -66,7 +81,7 @@ export async function getMyReports(): Promise<Report[]> {
  * Get one specific report
  *
  * Backend response:
- * WasteReportResponse
+ * WasteReportResponse (includes `prediction` when ML has run)
  */
 export async function getReport(
   reportId: string
@@ -75,6 +90,42 @@ export async function getReport(
     `/reports/${reportId}`,
     {
       method: "GET",
+    }
+  );
+}
+
+/*
+ * Get the ML prediction for a specific report.
+ *
+ * Backend response:
+ * PredictionResponse
+ */
+export async function getReportPrediction(
+  reportId: string
+): Promise<Prediction> {
+  return apiRequest<Prediction>(
+    `/internal/predictions/report/${reportId}`,
+    {
+      method: "GET",
+    }
+  );
+}
+
+/*
+ * (Re-)run AI analysis for a report right now.
+ * Used when a report shows no AI result. Idempotent: reports that
+ * already have a prediction are returned unchanged.
+ *
+ * Backend response:
+ * WasteReportResponse (with `prediction`)
+ */
+export async function retryReportAnalysis(
+  reportId: string
+): Promise<Report> {
+  return apiRequest<Report>(
+    `/reports/${reportId}/analyze`,
+    {
+      method: "POST",
     }
   );
 }

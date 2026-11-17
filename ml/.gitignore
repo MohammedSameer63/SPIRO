@@ -24,7 +24,9 @@ models/checkpoints/
 models/exports/
 models/registry/
 logs/
-reports/
+reports/*
+# ...except the tracked production audit report
+!reports/audit_report.md
 results/
 runs/
 # training/ is source code - keep it in Git
@@ -39,6 +41,8 @@ runs/
 # Notebooks
 .ipynb_checkpoints/
 *.ipynb
+# ...except the tracked Colab training pipeline
+!colab/SPIRO_ML_Training.ipynb
 
 # IDE
 .idea/

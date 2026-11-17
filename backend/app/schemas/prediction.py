@@ -25,6 +25,7 @@ class PredictionResponse(BaseModel):
     id: UUID
     report_id: UUID
     category_id: UUID
+    category_name: str | None = None
 
     confidence: Decimal | None = Field(
         default=None,

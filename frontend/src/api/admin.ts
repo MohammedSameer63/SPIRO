@@ -121,48 +121,11 @@ export async function removeWorkerFromWard(
   );
 }
 
-export async function getAdminPendingReports() {
-  return apiRequest<{
-    success: boolean;
-    data: {
-      id: string;
-      description: string | null;
-      address: string | null;
-      latitude: number;
-      longitude: number;
-      status:
-        | "PENDING"
-        | "ACCEPTED"
-        | "IN_PROGRESS"
-        | "COMPLETED";
-      image_url: string;
-      created_at: string;
-      updated_at: string;
-    }[];
- }>("/reports/admin/pending", {
-    method: "GET",
-  });
-}
+// NOTE: removed stale helpers that called backend routes which do not
+// exist (GET /reports/admin/pending, POST /reports/admin/.../assign/...).
+// Admins assign via POST /assignments; pending counts come from
+// GET /admin/dashboard. Do not re-add without the backend endpoint.
 
-export async function assignReportToWorker(
-  reportId: string,
-  workerId: string
-) {
-  return apiRequest<{
-    success: boolean;
-    message: string;
-    data: {
-      report_id: string;
-      worker_id: string;
-      worker_name: string;
-    };
-  }>(
-    `/reports/admin/${reportId}/assign/${workerId}`,
-    {
-      method: "POST",
-    }
-  );
-}
 // ============================================================
 // Admin Schedule API
 // ============================================================
@@ -248,5 +211,64 @@ export async function getAdminWasteCategories() {
     {
       method: "GET",
     }
+  );
+}
+
+export type AdminReport = {
+  id: string;
+  user_id: string;
+  schedule_id: string | null;
+  description: string | null;
+  image_url: string;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  status: "PENDING" | "ACCEPTED" | "IN_PROGRESS" | "COMPLETED";
+  created_at: string;
+  updated_at: string;
+  prediction: {
+    id: string;
+    category_id: string;
+    category_name: string | null;
+    confidence: number | string | null;
+    model_used: string | null;
+    prediction_time: string;
+  } | null;
+  pickup_validated?: boolean;
+  coins_awarded?: number;
+};
+
+/*
+ * All reports, newest first (admin audit view).
+ */
+export async function getAdminReports(status?: string, limit = 100) {
+  const params = new URLSearchParams();
+  if (status) params.set("status", status);
+  params.set("limit", String(limit));
+  return apiRequest<{ success: boolean; data: AdminReport[] }>(
+    `/admin/reports?${params.toString()}`,
+    { method: "GET" }
+  );
+}
+
+export type MlStatus = {
+  enabled: boolean;
+  initialized: boolean;
+  mock_mode: boolean;
+  model_file: string;
+  architecture: string;
+  input_size: number;
+  num_classes: number;
+  confidence_threshold: number;
+  pipeline_stages: string[];
+};
+
+/*
+ * Live ML service state for the model registry view.
+ */
+export async function getMlStatus() {
+  return apiRequest<{ success: boolean; data: MlStatus }>(
+    "/ml/status",
+    { method: "GET" }
   );
 }

@@ -60,3 +60,11 @@ class Prediction(Base):
     )
 
     category: Mapped["WasteCategory"] = relationship()
+
+    @property
+    def category_name(self) -> str | None:
+        """Denormalized category name for API responses."""
+        try:
+            return self.category.name if self.category is not None else None
+        except Exception:
+            return None

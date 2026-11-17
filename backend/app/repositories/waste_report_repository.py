@@ -1,8 +1,10 @@
 from uuid import UUID
 
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models import WasteReport
+from app.models.prediction import Prediction
 from app.repositories.base_repository import BaseRepository
 
 
@@ -26,11 +28,13 @@ class WasteReportRepository(BaseRepository):
         report_id: UUID,
     ) -> WasteReport | None:
         """
-        Retrieve a waste report by ID.
+        Retrieve a waste report by ID, with its ML prediction (if any).
         """
 
-        stmt = select(WasteReport).where(
-            WasteReport.id == report_id
+        stmt = (
+            select(WasteReport)
+            .options(selectinload(WasteReport.prediction).selectinload(Prediction.category))
+            .where(WasteReport.id == report_id)
         )
 
         result = self.db.execute(stmt)
@@ -42,11 +46,12 @@ class WasteReportRepository(BaseRepository):
         user_id: UUID,
     ) -> list[WasteReport]:
         """
-        Retrieve waste reports created by a user.
+        Retrieve waste reports created by a user, with ML predictions.
         """
 
         stmt = (
             select(WasteReport)
+            .options(selectinload(WasteReport.prediction).selectinload(Prediction.category))
             .where(WasteReport.user_id == user_id)
             .order_by(WasteReport.created_at.desc())
         )

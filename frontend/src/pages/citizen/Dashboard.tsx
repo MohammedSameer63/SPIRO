@@ -1,143 +1,296 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  Bell,
+  Camera,
+  ClipboardList,
+  Coins,
+  Hourglass,
+  Leaf,
+} from "lucide-react";
 import { getMyReports, type Report } from "../../api/reports";
+import { getWallet, type CoinWallet } from "../../api/coins";
+import { getCurrentUser, type User } from "../../api/auth";
+import {
+  Btn,
+  Card,
+  CoinTag,
+  EmptyState,
+  PageHeader,
+  Stat,
+  StatusPill,
+  WastePill,
+} from "../../components/ui";
+import { COLORS, font } from "../../theme";
 
 function Dashboard() {
-  const [total, setTotal] = useState(0);
-  const [pending, setPending] = useState(0);
-  const [completed, setCompleted] = useState(0);
-
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [wallet, setWallet] = useState<CoinWallet | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    loadStats();
+    loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function loadStats() {
+  async function loadAll() {
     try {
       setLoading(true);
       setError("");
-
-      const reports: Report[] = await getMyReports();
-
-      setTotal(reports.length);
-
-      setPending(
-        reports.filter(
-          (report) => report.status === "PENDING"
-        ).length
-      );
-
-      setCompleted(
-        reports.filter(
-          (report) => report.status === "COMPLETED"
-        ).length
-      );
+      const [me, myReports] = await Promise.all([
+        getCurrentUser().catch(() => null),
+        getMyReports(),
+      ]);
+      setUser(me);
+      setReports(myReports);
+      try {
+        setWallet(await getWallet());
+      } catch {
+        setWallet(null);
+      }
     } catch (err: any) {
-      console.error(
-        "Failed to load report statistics:",
-        err
-      );
-
-      setError(
-        err?.message ||
-          "Failed to load report statistics."
-      );
+      setError(err?.message || "Failed to load dashboard.");
     } finally {
       setLoading(false);
     }
   }
 
+  const pending = reports.filter((r) => r.status === "PENDING").length;
+  const completed = reports.filter((r) => r.status === "COMPLETED").length;
+  const recent = reports.slice(0, 4);
+
+  if (loading) {
+    return (
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Dashboard" />
+        <p style={{ color: COLORS.g500 }}>Loading your overview…</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ fontFamily: font }}>
+        <PageHeader title="Dashboard" />
+        <EmptyState
+          icon={<Bell size={40} />}
+          title="Couldn't load dashboard"
+          hint={error}
+          action={<Btn onClick={loadAll}>Retry</Btn>}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div style={styles.container}>
-      <h1>Citizen Dashboard</h1>
+    <div
+      style={{
+        fontFamily: font,
+        maxWidth: 1120,
+        display: "flex",
+        flexDirection: "column",
+        gap: 14,
+      }}
+    >
+      <Card
+        style={{
+          padding: 20,
+          borderLeft: `4px solid ${COLORS.cGreen}`,
+          background: "linear-gradient(135deg,#f0fdf4,#dcfce7)",
+        }}
+      >
+        <div
+          style={{ display: "flex", alignItems: "center", gap: 14 }}
+        >
+          <span style={{ fontSize: 40 }}>
+            <Leaf size={40} color={COLORS.cGreenD} />
+          </span>
+          <div>
+            <div
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                color: COLORS.cGreen,
+                letterSpacing: 1,
+                textTransform: "uppercase",
+                marginBottom: 2,
+              }}
+            >
+              Good {daypart()}, {user?.name?.split(" ")[0] || "Citizen"}
+            </div>
+            <div
+              style={{
+                fontSize: 18,
+                fontWeight: 800,
+                color: COLORS.cGreenD,
+              }}
+            >
+              Keep your ward clean
+            </div>
+            <div
+              style={{ fontSize: 12, color: COLORS.g600, marginTop: 2 }}
+            >
+              Snap waste → AI classifies it → worker collects → you earn
+              Green Coins
+            </div>
+          </div>
+        </div>
+        <Btn
+          onClick={() => navigate("/citizen/report")}
+          style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+        >
+          <Camera size={16} /> Submit Waste Now
+        </Btn>
+      </Card>
 
-      <p style={styles.subtitle}>
-        Welcome to SPIRO!
-      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gap: 10,
+        }}
+      >
+        <Stat
+          label="Green Coins"
+          value={wallet ? wallet.balance : "—"}
+          icon={<Coins size={18} />}
+          color={COLORS.coin}
+        />
+        <Stat
+          label="Completed"
+          value={completed}
+          icon={<ClipboardList size={18} />}
+          color={COLORS.dBlue}
+        />
+        <Stat
+          label="Pending"
+          value={pending}
+          icon={<Hourglass size={18} />}
+          color={COLORS.amber}
+        />
+      </div>
 
-      {loading && (
-        <p>Loading report statistics...</p>
-      )}
-
-      {error && (
-        <div style={styles.error}>
-          {error}
-
-          <button
-            onClick={loadStats}
-            style={styles.retryButton}
+      <Card style={{ padding: 16 }}>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 12,
+          }}
+        >
+          <span
+            style={{ fontSize: 15, fontWeight: 700, color: COLORS.g900 }}
           >
-            Retry
-          </button>
+            Recent Reports
+          </span>
+          <span
+            onClick={() => navigate("/citizen/reports")}
+            style={{
+              fontSize: 12,
+              color: COLORS.cGreen,
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            See all →
+          </span>
         </div>
-      )}
-
-      {!loading && !error && (
-        <div style={styles.cards}>
-          <div style={styles.card}>
-            <h3>Total Reports</h3>
-            <h2>{total}</h2>
+        {recent.length === 0 ? (
+          <div style={{ fontSize: 13, color: COLORS.g400 }}>
+            No reports yet — submit your first one above.
           </div>
+        ) : (
+          recent.map((r, i) => (
+            <div
+              key={r.id}
+              onClick={() => navigate(`/citizen/reports/${r.id}`)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "8px 0",
+                borderBottom:
+                  i < recent.length - 1
+                    ? `1px solid ${COLORS.g100}`
+                    : "none",
+                cursor: "pointer",
+              }}
+            >
+              <div style={{ flex: 1 }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: COLORS.g900,
+                  }}
+                >
+                  {r.description || "Waste report"}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.g400 }}>
+                  {new Date(r.created_at).toLocaleDateString()} ·{" "}
+                  {r.prediction?.category_name || "Analyzing…"}
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "flex-end",
+                  gap: 3,
+                }}
+              >
+                <StatusPill status={r.status} />
+                {r.prediction && (
+                  <WastePill category={r.prediction.category_name} />
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </Card>
 
-          <div style={styles.card}>
-            <h3>Pending</h3>
-            <h2>{pending}</h2>
+      {wallet && wallet.transactions.length > 0 && (
+        <Card style={{ padding: 16 }}>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: COLORS.g900,
+              marginBottom: 8,
+            }}
+          >
+            Latest Coin Activity
           </div>
-
-          <div style={styles.card}>
-            <h3>Completed</h3>
-            <h2>{completed}</h2>
-          </div>
-        </div>
+          {wallet.transactions.slice(0, 3).map((tx) => (
+            <div
+              key={tx.id}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: 12,
+                color: COLORS.g600,
+                padding: "6px 0",
+              }}
+            >
+              <span>{tx.note || tx.reason}</span>
+              <CoinTag amount={Number(tx.amount) || 0} />
+            </div>
+          ))}
+        </Card>
       )}
     </div>
   );
 }
 
-const styles = {
-  container: {
-    padding: "40px",
-  },
-
-  subtitle: {
-    color: "#6b7280",
-    marginBottom: "30px",
-  },
-
-  cards: {
-    display: "flex",
-    gap: "20px",
-    marginTop: "30px",
-    flexWrap: "wrap" as const,
-  },
-
-  card: {
-    padding: "25px",
-    background: "white",
-    borderRadius: "12px",
-    boxShadow:
-      "0 4px 15px rgba(0,0,0,0.08)",
-    minWidth: "180px",
-  },
-
-  error: {
-    padding: "15px",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    borderRadius: "8px",
-    maxWidth: "600px",
-  },
-
-  retryButton: {
-    marginLeft: "15px",
-    padding: "8px 14px",
-    border: "none",
-    borderRadius: "6px",
-    background: "#15803d",
-    color: "white",
-    cursor: "pointer",
-  },
-};
+function daypart(): string {
+  const h = new Date().getHours();
+  if (h < 12) return "morning";
+  if (h < 17) return "afternoon";
+  return "evening";
+}
 
 export default Dashboard;
